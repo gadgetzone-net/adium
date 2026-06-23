@@ -1,1 +1,1703 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:mso="urn:schemas-microsoft-com:office:office" xmlns:msdt="uuid:C2F41010-65B3-11d1-A29F-00AA00C14882">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Absorcion Real vs PEA </title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Segoe+UI:wght@300;400;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap');
+:root {
+  --bg: #ffffff; --surface: #ffffff; --surface2: #e9e9e9; --border: #d9d9d9; --border2: #e8e8e8;
+  --text: #000000; --text-mid: #333333; --text-muted: #000000;
+  --real: #c0392b; --real-light: rgba(192,57,43,0.12); --real-dark: #922b21;
+  --pea: #9e9e9e; --pea-light: rgba(158,158,158,0.15);
+  --header-bg: #f50404; --header-text: #ffffff; --table-header-bg: #8f8f8f;
+  --positive: #15c05ce5; --negative: #c0392b; --neutral: #888;
+  --sidebar-w: 110px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', 'Arial', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; font-size: 12px; }
+.app-header {
+  background: var(--header-bg); color: var(--header-text); padding: 0 1rem;
+  height: 48px; display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px rgba(218, 5, 5, 0.5);
+}
+.app-header h1 { font-size: 1.05rem; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase; }
+.header-right { display: flex; align-items: center; gap: 0.75rem; }
+.btn-upload {
+  display: flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.15);
+  border: 1px solid rgb(255,255,255); color: #000; padding: 6px 14px; border-radius: 4px;
+  font-size: 0.78rem; font-weight: 600; cursor: pointer; transition: all 0.2s; font-family: inherit;
+}
+.btn-upload:hover { background: rgb(117,117,117); }
+#fileInput { display: none; }
+.period-bar {
+  background: var(--surface); border-bottom: 1px solid var(--border); padding: 5px 1rem;
+  display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;
+}
+.period-label { font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.07em; font-weight: 600; }
+.period-btns { display: flex; gap: 0; border: 1px solid var(--border); border-radius: 4px; overflow: hidden; }
+.period-btn {
+  padding: 5px 16px; font-size: 0.75rem; font-weight: 600; border: none; background: var(--surface);
+  color: var(--text-muted); cursor: pointer; transition: all 0.15s; border-right: 1px solid var(--border); font-family: inherit;
+}
+.period-btn:last-child { border-right: none; }
+.period-btn:hover { background: var(--surface2); }
+.period-btn.active { background: var(--real); color: #fff; }
+.tabs-bar {
+  background: var(--surface); border-bottom: 2px solid var(--border); padding: 0 1rem;
+  display: flex; gap: 0; overflow-x: auto;
+}
+.tab {
+  padding: 11px 18px; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); cursor: pointer;
+  border-bottom: 3px solid transparent; white-space: nowrap; transition: all 0.15s;
+  text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: -2px;
+}
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--real); border-bottom-color: var(--real); }
+.layout { display: flex; min-height: calc(100vh - 52px - 38px - 42px); }
+.sidebar {
+  width: var(--sidebar-w); min-width: var(--sidebar-w); background: var(--surface);
+  border-right: 1px solid var(--border); padding: 0.75rem 0.5rem;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.sidebar-title { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); padding: 4px 8px 4px; font-weight: 700; }
+.sidebar-hint { font-size: 0.6rem; color: #aaa; padding: 0 8px 6px; font-style: italic; line-height: 1.3; }
+.selected-count { display: none; font-size: 0.58rem; font-weight: 700; background: var(--real); color: #fff; border-radius: 10px; padding: 1px 5px; margin-left: 4px; vertical-align: middle; }
+.selected-count.show { display: inline; }
+.month-btn {
+  display: flex; align-items: center; justify-content: space-between; padding: 6px 10px;
+  border-radius: 3px; cursor: pointer; font-size: 0.78rem; color: var(--text-mid); font-weight: 400;
+  border: none; background: transparent; width: 100%; font-family: inherit; text-align: left; transition: background 0.1s;
+}
+.month-btn:hover { background: var(--surface2); }
+.month-btn.active { background: var(--real); color: #fff; font-weight: 600; }
+.month-btn.has-data { font-weight: 600; }
+.month-btn .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--real); flex-shrink: 0; }
+.month-btn.active .dot { background: rgba(255,255,255,0.7); }
+.month-btn.no-data { color: var(--text-muted); }
+.month-btn.no-data .dot { background: var(--border); }
+.sidebar-sep { height: 1px; background: var(--border); margin: 4px 0; }
+.main { flex: 1; padding: 1rem 1rem 2rem; overflow-x: hidden; min-width: 0; }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+.section-title {
+  font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted);
+  font-weight: 700; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;
+}
+.section-title::before { content:''; width:3px; height:12px; background:var(--real); border-radius:2px; display:inline-block; }
+.chart-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
+.chart-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 1rem;
+}
+.chart-card-title { font-size: 0.72rem; color: var(--text-muted); font-weight: 600; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
+.chart-legend { display: flex; gap: 1.25rem; margin-bottom: 0.5rem; flex-wrap: wrap; }
+.legend-item { display: flex; align-items: center; gap: 0.35rem; font-size: 0.72rem; color: var(--text-mid); }
+.legend-line { width: 22px; height: 2px; }
+.legend-line.real { background: var(--real); }
+.legend-line.pea { background: var(--pea); border-top: 2px dashed var(--pea); height: 0; }
+.legend-line.aa { background: #666; border-top: 2px dashed #666; height: 0; }
+.chart-wrap { position: relative; }
+.summary-row { display: grid; grid-template-columns: 1fr 160px; gap: 0.75rem; margin-bottom: 1rem; align-items: start; }
+.table-card { background: var(--surface); border: 1px solid var(--border); border-radius: 4px; overflow-x: auto; }
+.kpi-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 1rem 1rem;
+  text-align: center; min-width: 140px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+}
+.kpi-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); font-weight: 700; }
+.kpi-value { font-size: 2rem; font-weight: 700; color: var(--real); line-height: 1.1; }
+.kpi-sublabel { font-size: 0.68rem; color: var(--text-muted); }
+table { width: 100%; min-width: unset; border-collapse: collapse; font-size: 0.72rem; table-layout: auto; }
+thead th {
+  background: var(--table-header-bg); color: #fff; padding: 6px 8px; text-align: right;
+  font-size: 0.65rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; white-space: nowrap;
+}
+thead th:first-child { text-align: left; }
+tbody tr:nth-child(odd) { background: var(--surface); }
+tbody tr:nth-child(even) { background: var(--surface2); }
+tbody tr:hover { background: #dde3e8; }
+tbody td { padding: 5px 8px; text-align: right; white-space: nowrap; }
+tbody td:first-child { text-align: left; font-weight: 700; color: var(--text); }
+tfoot tr { background: var(--table-header-bg) !important; }
+tfoot td { padding: 6px 8px; text-align: right; color: #fff; font-weight: 700; font-size: 0.72rem; white-space: nowrap; }
+tfoot td:first-child { text-align: left; }
+.val-neg { color: var(--negative); font-weight: 600; }
+.val-pos { color: var(--positive); font-weight: 600; }
+tfoot td.val-neg, tfoot td.val-pos { color: #ffffff !important; }
+thead th { color: #ffffff !important; }
+.period-tables { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1rem; }
+.period-table-title { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.08em; color: #fff; background: var(--table-header-bg); padding: 6px 8px; font-weight: 700; }
+.upload-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 300; align-items: center; justify-content: center; }
+.upload-overlay.show { display: flex; }
+.upload-modal { background: #fff; border-radius: 8px; padding: 2rem; width: 400px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); text-align: center; }
+.upload-modal h2 { font-size: 1rem; margin-bottom: 0.5rem; color: var(--text); }
+.upload-modal p { font-size: 0.82rem; color: var(--text-muted); margin-bottom: 1.5rem; line-height: 1.6; }
+.drop-zone { border: 2px dashed var(--border); border-radius: 6px; padding: 2rem; cursor: pointer; transition: all 0.2s; }
+.drop-zone:hover, .drop-zone.drag { border-color: var(--real); background: var(--real-light); }
+.drop-zone svg { width: 28px; height: 28px; color: var(--text-muted); margin: 0 auto 0.5rem; display: block; }
+.drop-zone p { font-size: 0.8rem; color: var(--text-muted); }
+.btn-cancel { margin-top: 1rem; font-size: 0.82rem; color: var(--text-muted); cursor: pointer; background: none; border: none; font-family: inherit; }
+.btn-cancel:hover { color: var(--text); }
+.eff-placeholder { background: var(--surface); border: 2px dashed var(--border); border-radius: 6px; padding: 3rem; text-align: center; }
+.eff-placeholder h3 { font-size: 1rem; color: var(--text-muted); margin: 1rem 0 0.5rem; }
+.eff-placeholder p { font-size: 0.82rem; color: var(--text-muted); max-width: 380px; margin: 0 auto; line-height: 1.6; }
+.info-box { background: #eaf3fb; border: 1px solid #aad4f5; border-radius: 4px; padding: 8px 14px; font-size: 0.78rem; color: #1a5276; margin-bottom: 1rem; display: flex; align-items: center; gap: 8px; }
+.vspea-summary { display: grid; grid-template-columns: repeat(4,1fr); gap: .75rem; margin-bottom: 1.25rem; }
+.vspea-kpi { background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 1rem 1.25rem; text-align: center; }
+.vspea-kpi-label { font-size: .62rem; text-transform: uppercase; letter-spacing: .08em; color: var(--text-muted); font-weight: 700; margin-bottom: .3rem; }
+.vspea-kpi-value { font-size: 1.8rem; font-weight: 700; color: var(--real); line-height: 1; }
+.vspea-kpi-sub { font-size: .68rem; color: var(--text-muted); margin-top: .25rem; }
+.bridge-section { margin-top: 1rem; }
+.bridge-title { font-size: .65rem; text-transform: uppercase; letter-spacing: .08em; font-weight: 700; color: var(--text-muted); margin-bottom: .5rem; display: flex; align-items: center; gap: .5rem; }
+.bridge-title::before { content:''; width: 3px; height: 12px; background: #888; border-radius: 2px; display: inline-block; }
+.bridge-row { display: flex; align-items: center; justify-content: space-between; padding: 6px 12px; border-radius: 3px; margin-bottom: 3px; font-size: .78rem; }
+.bridge-row:nth-child(odd) { background: var(--surface); }
+.bridge-row:nth-child(even) { background: var(--surface2); }
+.bridge-row-label { color: var(--text-mid); font-style: italic; }
+.bridge-row-values { display: flex; gap: 1.5rem; font-weight: 600; font-family: monospace; font-size: .75rem; }
+.tab-badge { font-size: .58rem; background: var(--real); color: #fff; border-radius: 10px; padding: 1px 6px; margin-left: 4px; vertical-align: middle; font-weight: 700; }
+.units-table-section { margin-top: 1.5rem; }
+.units-table-section .section-title { margin-bottom: 1rem; }
+.units-table-card { background: var(--surface); border: 1px solid var(--border); border-radius: 4px; overflow: hidden; margin-bottom: 1rem; }
+.units-table-header { background: var(--table-header-bg); color: #fff; padding: 8px 11px; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; }
+.units-table-header span { font-size: 0.6rem; font-weight: 400; opacity: 0.8; margin-left: 8px; }
+.units-table-card table { font-size: 0.72rem; }
+.units-table-card tbody td { padding: 5px 8px; }
+.units-table-card thead th { padding: 6px 8px; font-size: 0.62rem; }
+.units-table-card tfoot td { padding: 6px 8px; font-size: 0.72rem; }
+.var-expand-btn {
+  background: none; border: 1px solid var(--border); border-radius: 3px;
+  width: 18px; height: 18px; cursor: pointer; font-size: 11px; font-weight: 700;
+  color: var(--text-muted); line-height: 1; padding: 0; display: inline-flex;
+  align-items: center; justify-content: center; margin-right: 6px; flex-shrink: 0;
+  transition: all 0.15s;
+}
+.var-expand-btn:hover { background: var(--real); color: #fff; border-color: var(--real); }
+.var-expand-btn.open { background: var(--real); color: #fff; border-color: var(--real); }
+.var-month-row { display: none; }
+.var-month-row.show { display: table-row; }
+.var-month-row td { background: #f5f5f5 !important; font-size: 0.73rem; font-style: italic; padding: 5px 11px; }
+.var-month-row td:first-child { padding-left: 38px !important; font-weight: 400; color: #555; }
+.qp-btn.active { background: var(--real) !important; color: #fff !important; }
+.ib-tab { transition: color 0.15s, border-color 0.15s !important; }
+.ib-tab.active { color: var(--real) !important; border-bottom-color: var(--real) !important; }
+.ib-tab:hover:not(.active) { color: var(--text) !important; }
 
+/* ── INFO BOX TABLE: columnas iguales ── */
+.ib-table { border-collapse: collapse;font-size: 0.6rem; width: auto; min-width: unset;table-layout: auto;}
+.ib-table thead th { padding: 3px 6px; font-size: 0.58rem;white-space:nowrap;text-align:right;background: var(--table-header-bg); color:#fff;}
+.ib-table thead th:first-child { text-align:left; }
+.ib-table tbody tr:nth-child(odd) { background: var(--surface); }
+.ib-table tbody tr:nth-child(even) { background: var(--surface2); }
+.ib-table tbody td { padding: 2px 6px;font-size: 0.6rem;white-space:nowrap;text-align:right;}
+.ib-table tbody td:first-child { text-align:left;font-weight:700; }
+.ib-table tfoot tr { background: var(--table-header-bg) !important; }
+.ib-table tfoot td { padding: 3px 6px;font-size: 0.6rem;white-space:nowrap;text-align:right;color:#fff;font-weight:700;}
+.ib-table tfoot td:first-child { text-align: left; }
+.ib-ct-row td { background: #f7f7f7 !important; font-size: 0.68rem; padding: 4px 10px; border-bottom: 1px solid #eee; }
+.ib-ct-row:last-of-type td { border-bottom: 1px solid var(--border); }
+.pt-ct-row td { background: #f7f7f7 !important; font-size: 0.69rem; padding: 4px 10px; border-bottom: 1px solid #eee; }
+.st-month-row td { background: #f7f7f7 !important; font-size: 0.69rem; padding: 4px 10px; border-bottom: 1px solid #eee; }
+.acum-last-row td { background: #fff3e0 !important; font-weight: 700; border-top: 2px solid var(--real); }
+.acum-last-row td.val-neg { color: var(--negative); }
+.acum-last-row td.val-pos { color: var(--positive); }
+#table-var-acum thead tr:first-child th { background: var(--table-header-bg); }
+#table-var-acum thead tr:nth-child(2) th { background: #6e6e6e; font-size:0.65rem; }
+@media (max-width: 900px) { #quickPeriodButtons { display: none; } }
+::-webkit-scrollbar { width: 3px; height: 3px; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+
+<!--[if gte mso 9]><xml>
+<mso:CustomDocumentProperties>
+<mso:_dlc_DocId msdt:dt="string">MJNH3PUPVFQ7-1943608151-87725</mso:_dlc_DocId>
+<mso:_dlc_DocIdItemGuid msdt:dt="string">19c13650-7a92-4e7b-a27c-8841ce4667e9</mso:_dlc_DocIdItemGuid>
+<mso:_dlc_DocIdUrl msdt:dt="string">https://somosmas365.sharepoint.com/sites/PY/CGyCostos/_layouts/15/DocIdRedir.aspx?ID=MJNH3PUPVFQ7-1943608151-87725, MJNH3PUPVFQ7-1943608151-87725</mso:_dlc_DocIdUrl>
+</mso:CustomDocumentProperties>
+</xml><![endif]-->
+</head>
+<body>
+
+<!-- UPLOAD MODAL -->
+<div class="upload-overlay" id="uploadOverlay">
+  <div class="upload-modal">
+    <h2>Actualizar datos</h2>
+    <p>Carga un <strong>.xlsx</strong> (Analisis Abs) <strong>o un .csv</strong> de tu tabla dinamica.<br>Los datos se acumulan mes a mes automaticamente.</p>
+    <div style="background:#f0f7ff;border:1px solid #b3d4f5;border-radius:4px;padding:.6rem .9rem;margin-bottom:.8rem;text-align:left;">
+      <div style="font-size:.7rem;font-weight:700;color:#1a5276;margin-bottom:.3rem;">📋 FORMATO XLSX:</div>
+      <div class="xlsx-format">Absorcion</div>
+    </div>
+    <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M12 16v-8m0 0l-3 3m3-3l3 3"/><path d="M20 16.7A5 5 0 0018 7h-1.3A7 7 0 103 15.3"/>
+      </svg>
+      <p>Clic o arrastrar — .xlsx / .csv</p>
+      <p style="font-size:0.7rem;margin-top:4px;color:#aaa">Multiples archivos = datos acumulados</p>
+    </div>
+    <button class="btn-cancel" onclick="closeOverlay()">Cancelar</button>
+    <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" multiple onchange="handleFile(event)">
+  </div>
+</div>
+
+<!-- HEADER -->
+<header class="app-header">
+  <div style="display:flex;align-items:center;gap:12px;">
+    <img src="data:image/png;base64,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" alt="Adium" style="height:38px;width:auto;display:block;">
+    <h1 id="appTitle">Absorcion Real vs PEA </h1>
+  </div>
+  <div class="header-right">
+    <button class="btn-upload" onclick="openOverlay()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path d="M12 16v-8m0 0l-3 3m3-3l3 3M20 16.7A5 5 0 0018 7h-1.3A7 7 0 103 15.3"/>
+      </svg>
+      Cargar Excel / XLSX 
+    </button>
+  </div>
+</header>
+
+<!-- PERIOD SELECTOR -->
+<div class="period-bar">
+  <div class="period-btns" id="plantButtons">
+    <span class="period-label" style="margin:0 8px;font-weight:700;align-self:center;">CENTRO DE TRABAJO</span>
+    <button class="period-btn plant-btn active" onclick="setPlant('ALL',this)">Todas</button>
+    <button class="period-btn plant-btn" onclick="setPlant('ACO',this)">ACO</button>
+    <button class="period-btn plant-btn" onclick="setPlant('BLI',this)">BLI</button>
+    <button class="period-btn plant-btn" onclick="setPlant('INY',this)">INY</button>
+    <button class="period-btn plant-btn" onclick="setPlant('LIQ',this)">LIQ</button>
+    <button class="period-btn plant-btn" onclick="setPlant('SOLI',this)">SOLI</button>
+    <button class="period-btn plant-btn" onclick="setPlant('CAL',this)">CAL</button>
+  </div>
+  <span class="period-label" style="margin-left:auto;font-size:0.7rem;" id="periodInfo">Periodo activo: Ene – May </span>
+</div>
+
+<!-- CUADRO DE INFORMACION -->
+<div id="info-box" style="background:#fff;border-bottom:2px solid var(--border);width:100%;overflow:hidden;">
+  <div style="display:flex;align-items:center;border-bottom:1px solid var(--border);padding:5px 1.5rem;gap:1rem;background:#fafafa;">
+            <span id="ib-period-desc" style="font-size:0.65rem;color:#666;font-style:italic;"></span>
+    <span style="margin-left:auto;font-size:0.63rem;color:var(--text-muted);">Clic en fila para filtrar · Clic en encabezado para colapsar</span>
+  </div>
+
+
+<!-- TABS -->
+<div class="tabs-bar">
+  <div class="tab active" onclick="switchTab('absorcion')">Absorcion Real</div>
+  <div class="tab" onclick="switchTab('amortizacion')">Amortizacion abs</div>
+  <div class="tab" onclick="switchTab('ro')">R&O Full Year</div>
+  <div class="tab" onclick="switchTab('variacion')">Variacion</div>
+  <div class="tab" onclick="switchTab('vspea')">VS PEA </div>
+</div>
+
+<!-- LAYOUT -->
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-title">Mes <span class="selected-count" id="monthCount"></span></div>
+    <div class="sidebar-hint">Clic para seleccionar uno o varios</div>
+    <button class="month-btn active" id="btn-ALL" onclick="clearMonths()">Selec. todo</button>
+    <div class="sidebar-sep"></div>
+    <div id="monthButtons"></div>
+  </aside>
+
+  <main class="main">
+    <!-- TAB: ABSORCION -->
+    <section class="tab-content active" id="tab-absorcion">
+      <div class="chart-row">
+        <div class="chart-card">
+          <div class="chart-card-title">Unidades PEA y Unidades Real por Mes</div>
+          <div class="chart-legend">
+            <div class="legend-item"><div class="legend-line pea"></div> PEA </div>
+            <div class="legend-item"><div class="legend-line real"></div> REAL </div>
+          </div>
+          <div class="chart-wrap" style="height:220px"><canvas id="chart-abs-units"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-card-title">PEA y Real por Mes (Absorcion )</div>
+          <div class="chart-legend">
+            <div class="legend-item"><div class="legend-line pea"></div> PEA </div>
+            <div class="legend-item"><div class="legend-line real"></div> Real </div>
+          </div>
+          <div class="chart-wrap" style="height:220px"><canvas id="chart-abs-values"></canvas></div>
+        </div>
+      </div>
+      <div class="summary-row">
+        <div class="table-card" id="table-abs-wrap"></div>
+        <div class="kpi-card">
+          <div class="kpi-label">Cumplimiento</div>
+          <div class="kpi-value" id="kpi-abs-cumpl">—</div>
+          <div class="kpi-sublabel" id="kpi-abs-cumpl-sub">ABS Real vs PEA</div>
+        </div>
+      </div>
+      <div id="period-tables-abs"></div>
+      
+      <!-- ACUMULADO DE IMPORTES TABLE -->
+      <div class="units-table-section">
+        <div class="section-title">Absorcion de Importes — Acumulado</div>
+        <div class="table-card" style="overflow-x:auto;">
+          <table id="table-acum-importes"></table>
+        </div>
+        
+      <div class="table-card" style="overflow-x:auto;margin:0.9rem 0 1.5rem;box-sizing:border-box;width:fit-content;max-width:100%;transform:scale(1.4);transform-origin:top left;">
+        <div id="ib-mensual"   class="ib-pane"              style="display:block;"></div>
+        <div id="ib-trimestral" class="ib-pane"             style="display:none;"></div>
+        <div id="ib-semestral"  class="ib-pane"             style="display:none;"></div>
+      </div>
+    </section>
+
+    <!-- TAB: AMORTIZACION -->
+    <section class="tab-content" id="tab-amortizacion">
+      <div class="chart-row">
+        <div class="chart-card">
+          <div class="chart-card-title">Unidades por Mes — Amortizacion</div>
+          <div class="chart-legend">
+            <div class="legend-item"><div class="legend-line aa"></div> UNDS 2025 [AA]</div>
+            <div class="legend-item"><div class="legend-line real"></div> UNDS REAL/STD 2026</div>
+          </div>
+          <div class="chart-wrap" style="height:220px"><canvas id="chart-amor-units"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-card-title">PEA 2026 y Real 2026 por Mes (Amortizacion)</div>
+          <div class="chart-legend">
+            <div class="legend-item"><div class="legend-line pea"></div> PEA 2026</div>
+            <div class="legend-item"><div class="legend-line real"></div> Real 2026</div>
+          </div>
+          <div class="chart-wrap" style="height:220px"><canvas id="chart-amor-values"></canvas></div>
+        </div>
+      </div>
+      <div class="summary-row">
+        <div class="table-card" id="table-amor-wrap"></div>
+        <div class="kpi-card">
+          <div class="kpi-label">Crecimiento % </div>
+          <div class="kpi-value" id="kpi-amor-cumpl">—</div>
+          <div class="kpi-sublabel" id="kpi-amor-cumpl-sub">AMOR Real vs PEA</div>
+        </div>
+      </div>
+      <div id="period-tables-amor"></div>
+
+      <!-- AA COMPARATIVA DE AA VS 2026 TABLE - AMORTIZACIÓN -->
+      <div class="units-table-section">
+        <div class="section-title">AA comparativa de AA VS 2026</div>
+        <div class="table-card" style="overflow-x:auto;">
+          <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+            <thead>
+              <tr style="background: #606060; color: white;">
+                <th style="padding: 10px; text-align: left;">CT</th>
+                <th style="padding: 10px; text-align: right;">UNDS vs AA %</th>
+                <th style="padding: 10px; text-align: right;">ABS vs AA %</th>
+                <th style="padding: 10px; text-align: right;">UNDS vs AA</th>
+                <th style="padding: 10px; text-align: right;">vs AA</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td style="padding: 8px; font-weight: bold;">ACO</td><td style="padding: 8px; text-align: right; color: #2d5016;">12.7%</td><td style="padding: 8px; text-align: right; color: #2d5016;">3.6%</td><td style="padding: 8px; text-align: right;">1,865,901</td><td style="padding: 8px; text-align: right;">1,378,220,766</td></tr>
+              <tr><td style="padding: 8px; font-weight: bold;">BLI</td><td style="padding: 8px; text-align: right; color: #2d5016;">7.3%</td><td style="padding: 8px; text-align: right; color: #2d5016;">0.5%</td><td style="padding: 8px; text-align: right;">1,710,855</td><td style="padding: 8px; text-align: right;">208,401,662</td></tr>
+              <tr><td style="padding: 8px; font-weight: bold;">INY</td><td style="padding: 8px; text-align: right; color: #2d5016;">96.3%</td><td style="padding: 8px; text-align: right; color: #2d5016;">6.7%</td><td style="padding: 8px; text-align: right;">922,054</td><td style="padding: 8px; text-align: right;">2,591,548,487</td></tr>
+              <tr><td style="padding: 8px; font-weight: bold;">LIQ</td><td style="padding: 8px; text-align: right; color: #2d5016;">85.5%</td><td style="padding: 8px; text-align: right; color: #2d5016;">1.0%</td><td style="padding: 8px; text-align: right;">84,862</td><td style="padding: 8px; text-align: right;">365,976,538</td></tr>
+              <tr><td style="padding: 8px; font-weight: bold;">SOLI</td><td style="padding: 8px; text-align: right; color: #2d5016;">17.8%</td><td style="padding: 8px; text-align: right; color: #2d5016;">0.6%</td><td style="padding: 8px; text-align: right;">33,939,748</td><td style="padding: 8px; text-align: right;">216,626,758</td></tr>
+              <tr><td style="padding: 8px; font-weight: bold;">CAL</td><td style="padding: 8px; text-align: right;">—</td><td style="padding: 8px; text-align: right; color: #c62828;">-1.7%</td><td style="padding: 8px; text-align: right;">—</td><td style="padding: 8px; text-align: right;">-662,987,339</td></tr>
+              <tr style="background: #d3d3d3; font-weight: bold;"><td style="padding: 8px;">Total</td><td style="padding: 8px; text-align: right;">—</td><td style="padding: 8px; text-align: right; color: #2d5016;">10.6%</td><td style="padding: 8px; text-align: right;">—</td><td style="padding: 8px; text-align: right;">4,097,786,872</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+
+
+      <!-- UNIDADES COMPARATIVA AMORTIZACION -->
+      <div class="units-table-section">
+        <div class="section-title">Comparativa Cantidades — Amortizacion</div>
+        <div class="table-card" style="overflow-x:auto;">
+          <table id="table-amor-comparativa"></table>
+        </div>
+      </div>
+
+      <!-- ACUMULADO DE IMPORTES AMORTIZACION -->
+      <div class="units-table-section">
+        <div class="section-title">Amortizacion de Importes — Acumulado</div>
+        <div class="table-card" style="overflow-x:auto;">
+          <table id="table-amor-acum-importes"></table>
+        </div>
+      </div>
+
+      <div class="units-table-section">
+        <div class="section-title">Unidades por Centro de Trabajo — Amortizacion</div>
+        <div class="units-table-card">
+          <div class="units-table-header">UNDS 2025 [AA] <span>Datos historicos anual anterior</span></div>
+          <table id="table-units-aa"></table>
+        </div>
+        <div class="units-table-card">
+          <div class="units-table-header">UNDS REAL/STD 2026 <span>Datos actuales ano en curso</span></div>
+          <table id="table-units-2026"></table>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB: R&O -->
+    <section class="tab-content" id="tab-ro">
+      <div class="info-box">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+        Meses sin cierre real utilizan el valor PEA 2026 como estimado (R&O). Las barras transparentes indican meses futuros.
+      </div>
+      <div class="chart-row">
+        <div class="chart-card">
+          <div class="chart-card-title">R&O Absorcion — Full Year 2026</div>
+          <div class="chart-legend">
+            <div class="legend-item"><div class="legend-line pea"></div> PEA 2026</div>
+            <div class="legend-item"><div class="legend-line real"></div> Real / R&O</div>
+          </div>
+          <div class="chart-wrap" style="height:240px"><canvas id="chart-ro-abs"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-card-title">R&O Amortizacion — Full Year 2026</div>
+          <div class="chart-legend">
+            <div class="legend-item"><div class="legend-line pea"></div> PEA 2026</div>
+            <div class="legend-item"><div class="legend-line real"></div> Real / R&O</div>
+          </div>
+          <div class="chart-wrap" style="height:240px"><canvas id="chart-ro-amor"></canvas></div>
+        </div>
+      </div>
+      <div class="table-card" id="table-ro-wrap"></div>
+    </section>
+
+    <!-- TAB: VARIACION -->
+    <section class="tab-content" id="tab-variacion">
+      <div class="chart-row">
+        <div class="chart-card">
+          <div class="chart-card-title">Absorcion Real vs PEA por Planta</div>
+          <div class="chart-wrap" style="height:240px"><canvas id="chart-var-plantas"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-card-title">Componentes de Variacion por Planta</div>
+          <div class="chart-wrap" style="height:240px"><canvas id="chart-var-components"></canvas></div>
+        </div>
+      </div>
+      <div class="section-title" id="var-period-title" style="margin-top:1rem;">Variacion por CT — Periodo seleccionado</div>
+      <div class="table-card" id="table-var-wrap"></div>
+      <div class="section-title" id="var-acum-title" style="margin-top:1.25rem;">Acumulado Mes a Mes</div>
+      <div class="table-card" id="table-var-acum"></div>
+    </section>
+
+    <!-- TAB: VS PEA -->
+    <section class="tab-content" id="tab-vspea">
+      <div class="vspea-summary" id="vspea-kpis"></div>
+      <div class="section-title">Analisis de Variacion por Centro de Trabajo</div>
+      <div class="table-card" id="vspea-table-wrap"></div>
+      <div class="bridge-section" id="vspea-bridge"></div>
+    </section>
+
+    <!-- TAB: EFICIENCIA -->
+    <section class="tab-content" id="tab-eficiencia">
+      <div class="eff-placeholder">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.5">
+          <path d="M9 17H5a2 2 0 01-2-2V5a2 2 0 012-2h4m6 14h4a2 2 0 002-2V5a2 2 0 00-2-2h-4m-6 14v-4m0-4V7m6 10v-2m0-4V7"/>
+        </svg>
+        <h3>Cuadro de Eficiencia</h3>
+        <p>Este cuadro se completa con la plantilla de <strong>Variacion Volumen vs Costo NF</strong>. Carga el archivo correspondiente para actualizar los datos.</p>
+        <button class="btn-upload" style="margin-top:1rem;background:var(--real);border:none;padding:8px 18px;border-radius:4px;color:#fff;cursor:pointer;font-size:0.8rem;font-weight:600;" onclick="openOverlay()">Cargar plantilla</button>
+      </div>
+    </section>
+    </main>
+    </div>
+
+
+
+<script>
+// ════════════════════════════════════════════════
+// DATA
+// ════════════════════════════════════════════════
+let D = {"absorcion":{"Enero":{"pea":{"ACO":1095469149.5588117,"BLI":260937072.24964425,"INY":679974487.3568696,"LIQ":0.0,"SOLI":1174848173.9608302,"CAL":985055173.8674453,"TOTAL":4196284056.9936013},"real":{"ACO":687286733.0,"BLI":640982892.0,"INY":361095848.0,"LIQ":0.0,"SOLI":683999647.0,"CAL":922870622.0,"TOTAL":3296235742.0},"std":{"ACO":499136490.0,"BLI":482911115.0,"INY":342741477.0,"LIQ":0.0,"SOLI":701208372.0,"CAL":922870622.0,"TOTAL":2948868076.0},"var_otros":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"AF":-0.2972668113147955,"AG":0.08277982645647425,"AH":-0.21448698485832124,"AE":0.0,"units_pea":{"ACO":2082564.0,"BLI":1299639.0,"INY":302553.0,"LIQ":0.0,"SOLI":24823300.0,"CAL":0.0,"TOTAL":28508056.0},"units_real":{"ACO":2010765.0,"BLI":2626250.0,"INY":104584.0,"LIQ":0.0,"SOLI":22175263.0,"CAL":0.0,"TOTAL":26916862.0}},"Febrero":{"pea":{"ACO":2878947738.033385,"BLI":2467246539.1367245,"INY":2390686582.4962473,"LIQ":203420791.36633947,"SOLI":3204046492.199224,"CAL":3540124557.473737,"TOTAL":14684472700.705658},"real":{"ACO":2333994861.0,"BLI":1864436007.0,"INY":2422477585.0,"LIQ":10240903.0,"SOLI":2213154235.0,"CAL":3150296903.0,"TOTAL":11994600494.0},"std":{"ACO":1980348640.0,"BLI":1747151178.0,"INY":2395072482.0,"LIQ":9367473.0,"SOLI":2081780940.0,"CAL":3150296903.0,"TOTAL":11364017616.0},"var_otros":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"AF":-0.2261201442082489,"AG":0.042942153310666545,"AH":-0.18317799089758235,"AE":0.0,"units_pea":{"ACO":3212086.15,"BLI":6577338.0,"INY":459048.0,"LIQ":75159.14999999998,"SOLI":52335666.0,"CAL":0.0,"TOTAL":62659297.3},"units_real":{"ACO":3201652.0,"BLI":5426879.0,"INY":610634.0,"LIQ":2853.0,"SOLI":47744553.0,"CAL":0.0,"TOTAL":56986571.0}},"Marzo":{"pea":{"ACO":2299877564.686318,"BLI":1830019840.3468268,"INY":1644760227.4687724,"LIQ":260951282.89798516,"SOLI":2743868759.503,"CAL":2853194207.2045164,"TOTAL":11632671882.107418},"real":{"ACO":2545406806.0,"BLI":2102784371.0,"INY":3328222731.0,"LIQ":177277895.0,"SOLI":2389465572.0,"CAL":3081544101.0,"TOTAL":13624701476.0},"std":{"ACO":2190240354.0,"BLI":1878658912.0,"INY":3351268906.0,"LIQ":177755711.0,"SOLI":2416473784.0,"CAL":3081544101.0,"TOTAL":13095941768.0},"var_otros":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"AF":0.12578966386417928,"AG":0.045454708373000884,"AH":0.17124437223718017,"AE":0.0,"units_pea":{"ACO":3604449.772,"BLI":5604657.0,"INY":561119.0,"LIQ":105846.772,"SOLI":57910000.0,"CAL":0.0,"TOTAL":67786072.544},"units_real":{"ACO":3880004.0,"BLI":5867107.0,"INY":630412.0,"LIQ":64391.0,"SOLI":56004707.0,"CAL":0.0,"TOTAL":66446621.0}},"Abril":{"pea":{"ACO":2545939215.6221175,"BLI":2512377951.320847,"INY":1552324183.550348,"LIQ":151091799.1147673,"SOLI":2849922481.7387,"CAL":2729103972.9316916,"TOTAL":12340759604.278471},"real":{"ACO":2067617242.0,"BLI":1319196158.0,"INY":136288709.0,"LIQ":213100092.0,"SOLI":1814519732.0,"CAL":1773518245.0,"TOTAL":7324240178.0},"std":{"ACO":1755510090.0,"BLI":1112910757.0,"INY":144429180.0,"LIQ":224832459.0,"SOLI":1724597743.0,"CAL":1773518245.0,"TOTAL":6735798474.0},"var_otros":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"AF":-0.4541828307177512,"AG":0.04768277827857457,"AH":-0.4065000524391766,"AE":0.0,"units_pea":{"ACO":3578066.417,"BLI":8495450.0,"INY":458911.0,"LIQ":58683.417,"SOLI":54834000.0,"CAL":0.0,"TOTAL":67425110.83399999},"units_real":{"ACO":3570471.0,"BLI":6019807.0,"INY":128843.0,"LIQ":81921.0,"SOLI":53138649.0,"CAL":0.0,"TOTAL":62939691.0}},"Mayo":{"pea":{"ACO":2278486150.781122,"BLI":2075521332.7855458,"INY":1626631131.5775337,"LIQ":126794747.58647633,"SOLI":2405475526.2318115,"CAL":2738032447.370091,"TOTAL":11250941336.33258},"real":{"ACO":2456724702.0,"BLI":1919066372.0,"INY":1225174970.0,"LIQ":100415004.0,"SOLI":2180855682.0,"CAL":1790574630.0,"TOTAL":9672811360.0},"std":{"ACO":1893792717.0,"BLI":1451096901.0,"INY":1138980020.0,"LIQ":102679845.0,"SOLI":2099635113.0,"CAL":1790574630.0,"TOTAL":8476759226.0},"var_otros":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"AF":-0.24657333350178753,"AG":0.10630685008885415,"AH":-0.14026648341293338,"AE":0.0,"units_pea":{"ACO":3668889.9,"BLI":6303007.0,"INY":285400.0,"LIQ":50136.241,"SOLI":49994333.0,"CAL":0.0,"TOTAL":60301766.141},"units_real":{"ACO":3902055.0,"BLI":5228960.0,"INY":404606.0,"LIQ":34989.0,"SOLI":45083931.0,"CAL":0.0,"TOTAL":54654541.0}},"Junio":{"pea":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"real":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"std":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"var_otros":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"AF":0.0,"AG":0.0,"AH":0.0,"AE":0.0,"units_pea":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"units_real":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0}},"Julio":{"pea":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"real":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"std":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"var_otros":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"AF":0.0,"AG":0.0,"AH":0.0,"AE":0.0,"units_pea":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"units_real":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0}},"Agosto":{"pea":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"real":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"std":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"var_otros":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"AF":0.0,"AG":0.0,"AH":0.0,"AE":0.0,"units_pea":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"units_real":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0}},"Septiembre":{"pea":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"real":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"std":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"var_otros":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"AF":0.0,"AG":0.0,"AH":0.0,"AE":0.0,"units_pea":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"units_real":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0}},"Octubre":{"pea":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"real":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"std":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"var_otros":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"AF":0.0,"AG":0.0,"AH":0.0,"AE":0.0,"units_pea":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"units_real":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0}},"Noviembre":{"pea":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"real":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"std":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"var_otros":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"AF":0.0,"AG":0.0,"AH":0.0,"AE":0.0,"units_pea":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"units_real":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0}},"Diciembre":{"pea":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"real":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"std":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"var_otros":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"AF":0.0,"AG":0.0,"AH":0.0,"AE":0.0,"units_pea":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"units_real":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0}}},"amortizacion":{"Enero":{"pea":{"ACO":155290456.5325124,"BLI":58425545.65389507,"INY":133550754.54402708,"LIQ":0.0,"SOLI":438938636.9951503,"CAL":78157792.6108699,"TOTAL":864363186.3364547},"real":{"ACO":48262196.27193998,"BLI":95385538.99161002,"INY":61211225.20585,"LIQ":0.0,"SOLI":134694319.52385002,"CAL":56963157.45222305,"TOTAL":396516437.4454731},"std":{"ACO":48262196.27193998,"BLI":95385538.99161002,"INY":61211225.20585,"LIQ":0.0,"SOLI":134694319.52385002,"CAL":56963157.45222305,"TOTAL":396516437.4454731},"var_otros":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"AF":-0.5412617708464872,"AG":0.0,"AH":-0.5412617708464872,"AE":0.0,"units_pea":{"ACO":2082564.0,"BLI":1299639.0,"INY":302553.0,"LIQ":0.0,"SOLI":24823300.0,"CAL":0.0,"TOTAL":28508056.0},"units_real":{"ACO":2010765.0,"BLI":2626250.0,"INY":104584.0,"LIQ":0.0,"SOLI":22175263.0,"CAL":0.0,"TOTAL":26916862.0}},"Febrero":{"pea":{"ACO":390864904.2728563,"BLI":547034488.2778432,"INY":538565028.7988017,"LIQ":13328365.932862392,"SOLI":1149522248.340168,"CAL":265059491.71209672,"TOTAL":2904374527.334628},"real":{"ACO":280636083.2208402,"BLI":372139072.35353994,"INY":517490117.24960995,"LIQ":530209.10708,"SOLI":631326852.2452104,"CAL":234099412.65663636,"TOTAL":2036221746.8329167},"std":{"ACO":280636083.2208402,"BLI":372139072.35353994,"INY":517490117.24960995,"LIQ":530209.10708,"SOLI":631326852.2452104,"CAL":234099412.65663636,"TOTAL":2036221746.8329167},"var_otros":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"AF":-0.29891213145242096,"AG":0.0,"AH":-0.29891213145242096,"AE":0.0,"units_pea":{"ACO":3212086.15,"BLI":6577338.0,"INY":459048.0,"LIQ":75159.14999999998,"SOLI":52335666.0,"CAL":0.0,"TOTAL":62659297.3},"units_real":{"ACO":3201652.0,"BLI":5426879.0,"INY":610634.0,"LIQ":2853.0,"SOLI":47744553.0,"CAL":0.0,"TOTAL":56986571.0}},"Marzo":{"pea":{"ACO":322803342.888552,"BLI":406083439.5583747,"INY":347064329.71714187,"LIQ":17871477.659399822,"SOLI":996785212.63369,"CAL":217277156.80878842,"TOTAL":2307884959.265947},"real":{"ACO":326625626.8508204,"BLI":419993644.12361,"INY":753655977.5798796,"LIQ":11539908.437359998,"SOLI":897246574.9819896,"CAL":219565448.53005683,"TOTAL":2628627180.5037165},"std":{"ACO":326625626.8508204,"BLI":419993644.12361,"INY":753655977.5798796,"LIQ":11539908.437359998,"SOLI":897246574.9819896,"CAL":219565448.53005683,"TOTAL":2628627180.5037165},"var_otros":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"AF":0.13897669376890687,"AG":0.0,"AH":0.13897669376890687,"AE":0.0,"units_pea":{"ACO":3604449.772,"BLI":5604657.0,"INY":561119.0,"LIQ":105846.772,"SOLI":57910000.0,"CAL":0.0,"TOTAL":67786072.544},"units_real":{"ACO":3880004.0,"BLI":5867107.0,"INY":630412.0,"LIQ":64391.0,"SOLI":56004707.0,"CAL":0.0,"TOTAL":66446621.0}},"Abril":{"pea":{"ACO":376582475.26801807,"BLI":558825529.9619138,"INY":324231723.8529112,"LIQ":9887407.09846873,"SOLI":1036167491.6302401,"CAL":211050042.79050067,"TOTAL":2516744670.6020527},"real":{"ACO":272890160.87042063,"BLI":247750173.14090997,"INY":32853130.277769998,"LIQ":15377280.155940002,"SOLI":652176321.4064801,"CAL":258997251.93601537,"TOTAL":1480044317.7875361},"std":{"ACO":272890160.87042063,"BLI":247750173.14090997,"INY":32853130.277769998,"LIQ":15377280.155940002,"SOLI":652176321.4064801,"CAL":258997251.93601537,"TOTAL":1480044317.7875361},"var_otros":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"AF":-0.41192114755388287,"AG":0.0,"AH":-0.41192114755388287,"AE":0.0,"units_pea":{"ACO":3578066.417,"BLI":8495450.0,"INY":458911.0,"LIQ":58683.417,"SOLI":54834000.0,"CAL":0.0,"TOTAL":67425110.83399999},"units_real":{"ACO":3570471.0,"BLI":6019807.0,"INY":128843.0,"LIQ":81921.0,"SOLI":53138649.0,"CAL":0.0,"TOTAL":62939691.0}},"Mayo":{"pea":{"ACO":328165328.26616675,"BLI":461873564.09221303,"INY":376162807.25527817,"LIQ":8511090.527823826,"SOLI":860340544.086304,"CAL":203412107.98887977,"TOTAL":2238465442.2166657},"real":{"ACO":292865044.9023305,"BLI":322914631.13431007,"INY":216167640.73697004,"LIQ":7015234.9674999975,"SOLI":784218341.8826201,"CAL":157969580.99866477,"TOTAL":1781150474.6223955},"std":{"ACO":292865044.9023305,"BLI":322914631.13431007,"INY":216167640.73697004,"LIQ":7015234.9674999975,"SOLI":784218341.8826201,"CAL":157969580.99866477,"TOTAL":1781150474.6223955},"var_otros":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"AF":-0.20429842648873278,"AG":0.0,"AH":-0.20429842648873278,"AE":0.0,"units_pea":{"ACO":3668889.9,"BLI":6303007.0,"INY":285400.0,"LIQ":50136.241,"SOLI":49994333.0,"CAL":0.0,"TOTAL":60301766.141},"units_real":{"ACO":3902055.0,"BLI":5228960.0,"INY":404606.0,"LIQ":34989.0,"SOLI":45083931.0,"CAL":0.0,"TOTAL":54654541.0}},"Junio":{"pea":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"real":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"std":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"var_otros":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"AF":0.0,"AG":0.0,"AH":0.0,"AE":0.0,"units_pea":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"units_real":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0}},"Julio":{"pea":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"real":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"std":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"var_otros":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"AF":0.0,"AG":0.0,"AH":0.0,"AE":0.0,"units_pea":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"units_real":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0}},"Agosto":{"pea":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"real":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"std":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"var_otros":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"AF":0.0,"AG":0.0,"AH":0.0,"AE":0.0,"units_pea":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"units_real":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0}},"Septiembre":{"pea":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"real":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"std":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"var_otros":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"AF":0.0,"AG":0.0,"AH":0.0,"AE":0.0,"units_pea":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"units_real":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0}},"Octubre":{"pea":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"real":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"std":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"var_otros":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"AF":0.0,"AG":0.0,"AH":0.0,"AE":0.0,"units_pea":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"units_real":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0}},"Noviembre":{"pea":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"real":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"std":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"var_otros":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"AF":0.0,"AG":0.0,"AH":0.0,"AE":0.0,"units_pea":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"units_real":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0}},"Diciembre":{"pea":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"real":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"std":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"var_otros":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"AF":0.0,"AG":0.0,"AH":0.0,"AE":0.0,"units_pea":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0},"units_real":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0,"CAL":0.0,"TOTAL":0.0}}},"ro_abs":{"Enero":{"pea":{"ACO":1095469149.5588117,"BLI":260937072.24964425,"INY":679974487.3568696,"LIQ":0.0,"SOLI":1174848173.9608302,"CAL":985055173.8674453,"TOTAL":4196284056.9936013},"real":{"ACO":687286733.0,"BLI":640982892.0,"INY":361095848.0,"LIQ":0.0,"SOLI":683999647.0,"CAL":922870622.0,"TOTAL":3296235742.0}},"Febrero":{"pea":{"ACO":2878947738.033385,"BLI":2467246539.1367245,"INY":2390686582.4962473,"LIQ":203420791.36633947,"SOLI":3204046492.199224,"CAL":3540124557.473737,"TOTAL":14684472700.705658},"real":{"ACO":2333994861.0,"BLI":1864436007.0,"INY":2422477585.0,"LIQ":10240903.0,"SOLI":2213154235.0,"CAL":3150296903.0,"TOTAL":11994600494.0}},"Marzo":{"pea":{"ACO":2299877564.686318,"BLI":1830019840.3468268,"INY":1644760227.4687724,"LIQ":260951282.89798516,"SOLI":2743868759.503,"CAL":2853194207.2045164,"TOTAL":11632671882.107418},"real":{"ACO":2545406806.0,"BLI":2102784371.0,"INY":3328222731.0,"LIQ":177277895.0,"SOLI":2389465572.0,"CAL":3081544101.0,"TOTAL":13624701476.0}},"Abril":{"pea":{"ACO":2545939215.6221175,"BLI":2512377951.320847,"INY":1552324183.550348,"LIQ":151091799.1147673,"SOLI":2849922481.7387,"CAL":2729103972.9316916,"TOTAL":12340759604.278471},"real":{"ACO":2067617242.0,"BLI":1319196158.0,"INY":136288709.0,"LIQ":213100092.0,"SOLI":1814519732.0,"CAL":1773518245.0,"TOTAL":7324240178.0}},"Mayo":{"pea":{"ACO":2278486150.781122,"BLI":2075521332.7855458,"INY":1626631131.5775337,"LIQ":126794747.58647633,"SOLI":2405475526.2318115,"CAL":2738032447.370091,"TOTAL":11250941336.33258},"real":{"ACO":2456724702.0,"BLI":1919066372.0,"INY":1225174970.0,"LIQ":100415004.0,"SOLI":2180855682.0,"CAL":1790574630.0,"TOTAL":9672811360.0}},"Junio":{"pea":{"ACO":2043586966.6470168,"BLI":1507460598.9651787,"INY":1436453666.693247,"LIQ":29287824.124492787,"SOLI":2502735252.5110373,"CAL":2326456731.6512995,"TOTAL":9845981040.592274},"real":{"ACO":2796604826.6202397,"BLI":1636297717.6992006,"INY":2648240191.3930025,"LIQ":122608840.31012368,"SOLI":2148603532.21169,"CAL":1858159748.9759202,"TOTAL":11210514857.210176}},"Julio":{"pea":{"ACO":2034760780.8212194,"BLI":1577862959.9195757,"INY":882035499.9536482,"LIQ":140960764.78469598,"SOLI":2229531873.2948,"CAL":2038479473.4546466,"TOTAL":8903631352.228586},"real":{"ACO":2999574519.2813153,"BLI":1602604135.2452848,"INY":3257456713.037864,"LIQ":281106273.7426701,"SOLI":2013466745.8564677,"CAL":1956213433.060941,"TOTAL":12110421820.224545}},"Agosto":{"pea":{"ACO":2454139353.341874,"BLI":2110289042.2890625,"INY":1650488452.3093908,"LIQ":112029466.69671184,"SOLI":2765067966.4417996,"CAL":2797079421.5898995,"TOTAL":11889093702.668737},"real":{"ACO":2366770951.5347514,"BLI":2221391965.047394,"INY":3553352767.645742,"LIQ":289040743.4434701,"SOLI":2572848451.1383333,"CAL":2322286168.345661,"TOTAL":13325691047.155354}},"Septiembre":{"pea":{"ACO":2368395932.3534923,"BLI":2072444981.2723777,"INY":1691828817.4386916,"LIQ":244912645.0353028,"SOLI":2678781760.4007998,"CAL":2860152820.870575,"TOTAL":11916516957.371239},"real":{"ACO":2340891262.6467104,"BLI":2111039540.7702904,"INY":0.0,"LIQ":208557566.50303054,"SOLI":2368886743.8037677,"CAL":1590103645.4948206,"TOTAL":8619478759.21862}},"Octubre":{"pea":{"ACO":2299596872.9790382,"BLI":1971836495.942183,"INY":1161174807.3569932,"LIQ":126687612.9988833,"SOLI":2249694519.5236998,"CAL":2272677970.0829706,"TOTAL":10081668278.883768},"real":{"ACO":2227284314.622929,"BLI":1855568373.651527,"INY":0.0,"LIQ":71212093.73403284,"SOLI":2273912280.9332094,"CAL":1470663097.4332328,"TOTAL":7898640160.374931}},"Noviembre":{"pea":{"ACO":1698050838.635285,"BLI":1474078746.603943,"INY":803368063.4189672,"LIQ":112131643.26319161,"SOLI":1581701039.5310001,"CAL":1616518024.1860654,"TOTAL":7285848355.638453},"real":{"ACO":1774812640.7994502,"BLI":1568366220.5980742,"INY":2908601506.2146077,"LIQ":68651981.7804023,"SOLI":1577338856.7699068,"CAL":1432994687.87951,"TOTAL":9330765894.04195}},"Diciembre":{"pea":{"ACO":1509418373.402922,"BLI":1278631380.123031,"INY":1334297826.2482667,"LIQ":99928198.18361033,"SOLI":732188615.265,"CAL":1226875883.644742,"TOTAL":6181340276.867572},"real":{"ACO":1264877153.8856065,"BLI":1275470668.7830436,"INY":1921767632.9479089,"LIQ":11866479.566435818,"SOLI":1185259565.51788,"CAL":1104955955.1970005,"TOTAL":6764197455.897875}}},"ro_amor":{"Enero":{"pea":{"ACO":155290456.5325124,"BLI":58425545.65389507,"INY":133550754.54402708,"LIQ":0.0,"SOLI":438938636.9951503,"CAL":78157792.6108699,"TOTAL":864363186.3364547},"real":{"ACO":48262196.27193998,"BLI":95385538.99161002,"INY":61211225.20585,"LIQ":0.0,"SOLI":134694319.52385002,"CAL":56963157.45222305,"TOTAL":396516437.4454731}},"Febrero":{"pea":{"ACO":390864904.2728563,"BLI":547034488.2778432,"INY":538565028.7988017,"LIQ":13328365.932862392,"SOLI":1149522248.340168,"CAL":265059491.71209672,"TOTAL":2904374527.334628},"real":{"ACO":280636083.2208402,"BLI":372139072.35353994,"INY":517490117.24960995,"LIQ":530209.10708,"SOLI":631326852.2452104,"CAL":234099412.65663636,"TOTAL":2036221746.8329167}},"Marzo":{"pea":{"ACO":322803342.888552,"BLI":406083439.5583747,"INY":347064329.71714187,"LIQ":17871477.659399822,"SOLI":996785212.63369,"CAL":217277156.80878842,"TOTAL":2307884959.265947},"real":{"ACO":326625626.8508204,"BLI":419993644.12361,"INY":753655977.5798796,"LIQ":11539908.437359998,"SOLI":897246574.9819896,"CAL":219565448.53005683,"TOTAL":2628627180.5037165}},"Abril":{"pea":{"ACO":376582475.26801807,"BLI":558825529.9619138,"INY":324231723.8529112,"LIQ":9887407.09846873,"SOLI":1036167491.6302401,"CAL":211050042.79050067,"TOTAL":2516744670.6020527},"real":{"ACO":272890160.87042063,"BLI":247750173.14090997,"INY":32853130.277769998,"LIQ":15377280.155940002,"SOLI":652176321.4064801,"CAL":258997251.93601537,"TOTAL":1480044317.7875361}},"Mayo":{"pea":{"ACO":328165328.26616675,"BLI":461873564.09221303,"INY":376162807.25527817,"LIQ":8511090.527823826,"SOLI":860340544.086304,"CAL":203412107.98887977,"TOTAL":2238465442.2166657},"real":{"ACO":292865044.9023305,"BLI":322914631.13431007,"INY":216167640.73697004,"LIQ":7015234.9674999975,"SOLI":784218341.8826201,"CAL":157969580.99866477,"TOTAL":1781150474.6223955}},"Junio":{"pea":{"ACO":299451546.3219712,"BLI":333936454.94626486,"INY":307204243.89371645,"LIQ":1843775.466791535,"SOLI":930994279.2174541,"CAL":179844696.8773637,"TOTAL":2053274996.7235618},"real":{"ACO":404797436.5058885,"BLI":362413742.65270895,"INY":584489776.7241975,"LIQ":8095519.277081015,"SOLI":807044736.6182517,"CAL":178633988.08033895,"TOTAL":2345475199.8584666}},"Julio":{"pea":{"ACO":297200920.3209666,"BLI":350955274.13026035,"INY":201960704.64318252,"LIQ":9462133.467431061,"SOLI":806308140.7552402,"CAL":151796790.74290726,"TOTAL":1817683964.059988},"real":{"ACO":427369902.5618527,"BLI":356133456.5880309,"INY":742596096.2825646,"LIQ":19431111.29516907,"SOLI":728895548.9153999,"CAL":190754848.45769453,"TOTAL":2465180964.100712}},"Agosto":{"pea":{"ACO":361936814.08908975,"BLI":468980781.4185549,"INY":358117927.97727823,"LIQ":7677037.701152843,"SOLI":973137382.33028,"CAL":213995860.41473296,"TOTAL":2383845803.9310884},"real":{"ACO":337962709.30052406,"BLI":493149918.31537783,"INY":785315711.4990655,"LIQ":19837705.021604043,"SOLI":907921895.5573782,"CAL":237302469.7039141,"TOTAL":2781490409.397864}},"Septiembre":{"pea":{"ACO":339915946.3569578,"BLI":459656556.1833632,"INY":366507431.2972488,"LIQ":16305574.207669841,"SOLI":968558117.61328,"CAL":226082271.02870718,"TOTAL":2377025896.687227},"real":{"ACO":340484925.0804041,"BLI":467282834.4471991,"INY":0.0,"LIQ":14464443.287574569,"SOLI":850690365.6413057,"CAL":148065329.21905887,"TOTAL":1820987897.6755424}},"Octubre":{"pea":{"ACO":341953256.85812485,"BLI":439257789.28351164,"INY":245460066.19131005,"LIQ":8350408.923165496,"SOLI":808122412.3504401,"CAL":163958230.14279148,"TOTAL":2007102163.7493436},"real":{"ACO":323855841.64657897,"BLI":412709330.4346571,"INY":0.0,"LIQ":4076228.159128025,"SOLI":816970477.9163489,"CAL":139864861.21723408,"TOTAL":1697476739.3739471}},"Noviembre":{"pea":{"ACO":253990263.02618504,"BLI":328183054.2343116,"INY":190486454.20758316,"LIQ":7683683.711696276,"SOLI":565706118.2558,"CAL":118646552.63105083,"TOTAL":1464696126.0666268},"real":{"ACO":265962150.16484168,"BLI":348706879.3441577,"INY":657710953.3684952,"LIQ":4637880.96257586,"SOLI":571880123.5529019,"CAL":140808714.07671112,"TOTAL":1989706701.4696836}},"Diciembre":{"pea":{"ACO":216071309.5790717,"BLI":284231043.49572456,"INY":289498068.5539715,"LIQ":6807491.6234214045,"SOLI":270150346.43579996,"CAL":82417063.25646219,"TOTAL":1149175322.9444513},"real":{"ACO":183212726.65346232,"BLI":283046337.3630433,"INY":420727940.32754076,"LIQ":836898.8678788163,"SOLI":479119862.0376024,"CAL":108560680.91368714,"TOTAL":1475504446.1632147}}},"variacion":{},"variacion_mensual":{}};
+
+let UNITS_AA_2025 = {"Enero":{"ACO":1613056.0,"BLI":2091624.0,"INY":212517.0,"LIQ":0.0,"SOLI":20312832.0},"Febrero":{"ACO":2858058.0,"BLI":4494475.0,"INY":512978.0,"LIQ":55062.0,"SOLI":41473586.0},"Marzo":{"ACO":3900833.0,"BLI":6207746.0,"INY":92348.0,"LIQ":36594.0,"SOLI":38375610.0},"Abril":{"ACO":3305834.0,"BLI":5146235.0,"INY":19068.0,"LIQ":2077.0,"SOLI":44131815.0},"Mayo":{"ACO":3021265.0,"BLI":5518068.0,"INY":120114.0,"LIQ":5559.0,"SOLI":45913512.0},"Junio":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0},"Julio":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0},"Agosto":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0},"Septiembre":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0},"Octubre":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0},"Noviembre":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0},"Diciembre":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0}};
+let UNITS_REAL_2026 = {"Enero":{"ACO":2010765.0,"BLI":2626250.0,"INY":104584.0,"LIQ":0.0,"SOLI":22175263.0},"Febrero":{"ACO":3201652.0,"BLI":5426879.0,"INY":610634.0,"LIQ":2853.0,"SOLI":47744553.0},"Marzo":{"ACO":3880004.0,"BLI":5867107.0,"INY":630412.0,"LIQ":64391.0,"SOLI":56004707.0},"Abril":{"ACO":3570471.0,"BLI":6019807.0,"INY":128843.0,"LIQ":81921.0,"SOLI":53138649.0},"Mayo":{"ACO":3902055.0,"BLI":5228960.0,"INY":404606.0,"LIQ":34989.0,"SOLI":45083931.0},"Junio":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0},"Julio":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0},"Agosto":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0},"Septiembre":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0},"Octubre":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0},"Noviembre":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0},"Diciembre":{"ACO":0.0,"BLI":0.0,"INY":0.0,"LIQ":0.0,"SOLI":0.0}};
+const UNITS_PLANTS = ['ACO','BLI','INY','LIQ','SOLI'];
+let MESES_REAL = ["Enero","Febrero","Marzo","Abril","Mayo"];
+
+const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const MESES_SHORT = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+const PLANTAS = ['ACO','BLI','INY','LIQ','SOLI','CAL'];
+const TRIMESTRES = {T1:[0,1,2], T2:[3,4,5], T3:[6,7,8], T4:[9,10,11]};
+const SEMESTRES  = {S1:[0,1,2,3,4,5], S2:[6,7,8,9,10,11]};
+const YEARS = [2024,2025,2026];
+
+let D_monthly = {};
+let charts = {};
+let currentPeriod = 'mensual';
+let currentPlant = 'ALL';
+let selectedMonths = new Set();
+let vspea_selectedPlant = 'ALL';
+
+function s(v){ try{const f=parseFloat(v);return isNaN(f)||!isFinite(f)?0:f;}catch(e){return 0;} }
+function fmt(v){ if(v===null||v===undefined||isNaN(v)) return '—'; return new Intl.NumberFormat('es-AR',{maximumFractionDigits:0}).format(Math.round(v)); }
+function fmtN(v){ if(!v&&v!==0) return '—'; return new Intl.NumberFormat('es-AR',{maximumFractionDigits:0}).format(Math.round(v)); }
+function fmtUnits(v){ if(!v&&v!==0) return '—'; return new Intl.NumberFormat('es-AR',{maximumFractionDigits:0}).format(Math.round(v)); }
+function fmtGs(v){ if(!v&&v!==0) return '—'; return new Intl.NumberFormat('es-AR',{maximumFractionDigits:0}).format(Math.round(v)); }
+function pct(a,b){ return b?((a-b)/Math.abs(b)):null; }
+function pctStr(v,dp=1){ if(v===null||isNaN(v))return '—'; return (v>=0?'+':'')+(v*100).toFixed(dp)+'%'; }
+function vc(v){ if(!v&&v!==0)return ''; return v<0?'val-neg':(v>0?'val-pos':''); }
+
+function activeMonths(sec){
+  return MESES.filter(m=>{
+    if(!D[sec]||!D[sec][m]) return false;
+    if(currentPlant==='ALL') return (D[sec][m].pea.TOTAL>0||D[sec][m].real.TOTAL>0);
+    return ((D[sec][m].pea[currentPlant]||0)>0 || (D[sec][m].real[currentPlant]||0)>0);
+  });
+}
+
+function viewMonths(sec){
+  const a = activeMonths(sec);
+  if(selectedMonths.size===0) return a;
+  return a.filter(m=>selectedMonths.has(m));
+}
+
+function getPlantValue(sec,m,type){
+  if(currentPlant==='ALL') return D[sec][m]?.[type]?.TOTAL||0;
+  return D[sec][m]?.[type]?.[currentPlant]||0;
+}
+
+function getPlantsToShow(){
+  return currentPlant==='ALL' ? PLANTAS : [currentPlant];
+}
+
+function setPlant(p, btn){
+  currentPlant = p;
+  document.querySelectorAll('.plant-btn').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  refreshAll();
+}
+
+function buildPeriods(sec='absorcion'){
+  const active = activeMonths(sec);
+  const selected = selectedMonths.size===0 ? null : selectedMonths;
+  const filteredActive = selected ? active.filter(m=>selected.has(m)) : active;
+  if(currentPeriod==='mensual'){
+    return filteredActive.map(m=>({label:MESES_SHORT[MESES.indexOf(m)], months:[m]}));
+  }
+  const groups = currentPeriod==='trimestral' ? Object.entries(TRIMESTRES) : Object.entries(SEMESTRES);
+  return groups.map(([k,idxs])=>{
+    const months = idxs.map(i=>MESES[i]).filter(m=>filteredActive.includes(m));
+    return {label:k, months};
+  }).filter(g=>g.months.length>0);
+}
+
+Chart.defaults.font.family = "'Arial','Arial',Arial";
+Chart.defaults.font.size = 11;
+Chart.defaults.color = '#666';
+Chart.defaults.borderColor = '#e8e8e8';
+
+function destroyChart(id){ if(charts[id]){charts[id].destroy();delete charts[id];} }
+
+function lineOpts(){ return {
+  responsive:true, maintainAspectRatio:false,
+  interaction:{mode:'index',intersect:false},
+  plugins:{
+    legend:{display:false},
+    tooltip:{backgroundColor:'#fff',borderColor:'#ddd',borderWidth:1,titleColor:'#333',bodyColor:'#555',
+      callbacks:{label:c=>` ${c.dataset.label}: ${fmt(c.parsed.y)}`}}
+  },
+  scales:{
+    x:{grid:{color:'#f0f0f0'},ticks:{color:'#888'}},
+    y:{grid:{color:'#f0f0f0'},ticks:{color:'#888',callback:v=>fmt(v)}}
+  }
+}; }
+
+function buildSidebar(){
+  const container = document.getElementById('monthButtons');
+  container.innerHTML = MESES.map((m,i)=>{
+    const hasData = D.absorcion[m]&&(D.absorcion[m].pea.TOTAL>0||D.absorcion[m].real.TOTAL>0);
+    return `<button class="month-btn ${hasData?'has-data':'no-data'}" id="btn-${m}" onclick="toggleMonth('${m}',this)">
+      ${MESES_SHORT[i]} <span class="dot"></span>
+    </button>`;
+  }).join('');
+  updateSidebarState();
+}
+
+function toggleMonth(m){
+  if(selectedMonths.has(m)) selectedMonths.delete(m);
+  else selectedMonths.add(m);
+  updateSidebarState();
+  refreshAll();
+}
+
+function clearMonths(){
+  selectedMonths.clear();
+  updateSidebarState();
+  refreshAll();
+}
+
+function updateSidebarState(){
+  const allBtn = document.getElementById('btn-ALL');
+  if(allBtn) allBtn.classList.toggle('active', selectedMonths.size===0);
+  MESES.forEach(m=>{
+    const btn = document.getElementById('btn-'+m);
+    if(btn) btn.classList.toggle('active', selectedMonths.has(m));
+  });
+  const badge = document.getElementById('monthCount');
+  if(badge){
+    if(selectedMonths.size>0){ badge.textContent = selectedMonths.size; badge.classList.add('show'); }
+    else badge.classList.remove('show');
+  }
+}
+
+function setPeriod(p, btn){
+  currentPeriod = p;
+  document.querySelectorAll('.period-btn').forEach(b=>{
+    if(!b.classList.contains('plant-btn')) b.classList.remove('active');
+  });
+  btn.classList.add('active');
+  refreshAll();
+}
+
+const QUICK_PERIODS = {
+  Q1: [0,1,2], Q2: [3,4,5], Q3: [6,7,8], Q4: [9,10,11],
+  S1: [0,1,2,3,4,5], S2: [6,7,8,9,10,11]
+};
+let activeQuickPeriod = 'ALL';
+
+function selectQuickPeriod(key, btn){
+  activeQuickPeriod = key;
+  document.querySelectorAll('.qp-btn').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  selectedMonths.clear();
+  if(key !== 'ALL'){ QUICK_PERIODS[key].forEach(i=>selectedMonths.add(MESES[i])); }
+  updateSidebarState();
+  refreshAll();
+}
+
+function syncQuickPeriodBtn(){}
+
+function buildLineCharts(sec, canvasUnits, canvasVals){
+  destroyChart(canvasUnits); destroyChart(canvasVals);
+  const periods = buildPeriods(sec);
+  const labels = periods.map(p=>p.label);
+  const uPea = periods.map(p=>p.months.reduce((s,m)=>{
+    const d = D[sec][m]; if(!d) return s;
+    if(currentPlant && currentPlant!=='ALL' && d.units_pea?.[currentPlant] !== undefined) return s + (d.units_pea[currentPlant]||0);
+    return s + (d.units_pea?.TOTAL||0);
+  },0));
+  const uReal = periods.map(p=>p.months.reduce((s,m)=>{
+    const d = D[sec][m]; if(!d) return s;
+    if(currentPlant && currentPlant!=='ALL' && d.units_real?.[currentPlant] !== undefined) return s + (d.units_real[currentPlant]||0);
+    return s + (d.units_real?.TOTAL||0);
+  },0));
+  const vPea = periods.map(p=>p.months.reduce((s,m)=>s+getPlantValue(sec,m,'pea'),0));
+  const vReal = periods.map(p=>p.months.reduce((s,m)=>s+getPlantValue(sec,m,'real'),0));
+  function makeDs(pea, real){
+    return [
+      {label:'PEA', data:pea, borderColor:'#9e9e9e', borderDash:[6,4], backgroundColor:'transparent',
+       pointBackgroundColor:'#9e9e9e', pointRadius:4, borderWidth:2, tension:0.3, type:'line', fill:false},
+      {label:'Real', data:real, borderColor:'#c0392b', backgroundColor:'transparent',
+       pointBackgroundColor:'#c0392b', pointRadius:4, borderWidth:2.5, tension:0.3, type:'line', fill:false}
+    ];
+  }
+  if(document.getElementById(canvasUnits)){
+    charts[canvasUnits] = new Chart(document.getElementById(canvasUnits).getContext('2d'),
+      {type:'line', data:{labels, datasets:makeDs(uPea,uReal)}, options:lineOpts()});
+  }
+  if(document.getElementById(canvasVals)){
+    charts[canvasVals] = new Chart(document.getElementById(canvasVals).getContext('2d'),
+      {type:'line', data:{labels, datasets:makeDs(vPea,vReal)}, options:lineOpts()});
+  }
+}
+
+function buildAmortizacionCharts(){
+  destroyChart('chart-amor-units'); destroyChart('chart-amor-values');
+  const periods = buildPeriods('amortizacion');
+  const labels = periods.map(p=>p.label);
+  const plants = getPlantsToShow().filter(p=>UNITS_PLANTS.includes(p));
+  if(plants.length===0) plants.push('ACO');
+  const uAA = periods.map(p=>p.months.reduce((sum,m)=>sum + plants.reduce((s,pl)=>s+(UNITS_AA_2025[m]?.[pl]||0),0),0));
+  const uReal = periods.map(p=>p.months.reduce((sum,m)=>sum + plants.reduce((s,pl)=>s+(UNITS_REAL_2026[m]?.[pl]||0),0),0));
+  if(document.getElementById('chart-amor-units')){
+    charts['chart-amor-units'] = new Chart(document.getElementById('chart-amor-units').getContext('2d'),{
+      type:'line',
+      data:{labels, datasets:[
+        {label:'UNDS 2025 [AA]', data:uAA, borderColor:'#666666', borderDash:[6,4], backgroundColor:'transparent', pointBackgroundColor:'#666666', pointRadius:4, borderWidth:2, tension:0.3, fill:false},
+        {label:'UNDS REAL/STD 2026', data:uReal, borderColor:'#c0392b', backgroundColor:'transparent', pointBackgroundColor:'#c0392b', pointRadius:4, borderWidth:2.5, tension:0.3, fill:false}
+      ]},
+      options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+        plugins:{legend:{display:false},tooltip:{backgroundColor:'#fff',borderColor:'#ddd',borderWidth:1,titleColor:'#333',bodyColor:'#555',callbacks:{label:c=>` ${c.dataset.label}: ${fmtUnits(c.parsed.y)}`}}},
+        scales:{x:{grid:{color:'#f0f0f0'},ticks:{color:'#888'}},y:{grid:{color:'#f0f0f0'},ticks:{color:'#888',callback:v=>fmtUnits(v)}}}}
+    });
+  }
+  const vPea = periods.map(p=>p.months.reduce((s,m)=>s+getPlantValue('amortizacion',m,'pea'),0));
+  const vReal = periods.map(p=>p.months.reduce((s,m)=>s+getPlantValue('amortizacion',m,'real'),0));
+  if(document.getElementById('chart-amor-values')){
+    charts['chart-amor-values'] = new Chart(document.getElementById('chart-amor-values').getContext('2d'),{
+      type:'line', data:{labels, datasets:[
+        {label:'PEA 2026', data:vPea, borderColor:'#9e9e9e', borderDash:[6,4], backgroundColor:'transparent', pointBackgroundColor:'#9e9e9e', pointRadius:4, borderWidth:2, tension:0.3, fill:false},
+        {label:'Real 2026', data:vReal, borderColor:'#c0392b', backgroundColor:'transparent', pointBackgroundColor:'#c0392b', pointRadius:4, borderWidth:2.5, tension:0.3, fill:false}
+      ]}, options:lineOpts()
+    });
+  }
+}
+
+function buildUnitsTables(){
+  const plants = UNITS_PLANTS;
+  const activeMs = activeMonths('amortizacion');
+  let rowsAA = activeMs.map(m=>{
+    const cells = plants.map(p=>`<td>${fmtUnits(UNITS_AA_2025[m][p]||0)}</td>`).join('');
+    const rowTotal = plants.reduce((s,p)=>s+(UNITS_AA_2025[m][p]||0),0);
+    return `<tr><td>${MESES_SHORT[MESES.indexOf(m)]}</td>${cells}<td><strong>${fmtUnits(rowTotal)}</strong></td></tr>`;
+  }).join('');
+  const totAA = {}; plants.forEach(p=>{ totAA[p] = activeMs.reduce((s,m)=>s+(UNITS_AA_2025[m][p]||0),0); });
+  const totAATotal = Object.values(totAA).reduce((a,b)=>a+b,0);
+  document.getElementById('table-units-aa').innerHTML = `
+    <thead><tr><th>Mes/CT</th>${plants.map(p=>`<th>${p}</th>`).join('')}<th>Total</th></tr></thead>
+    <tbody>${rowsAA}</tbody>
+    <tfoot><tr><td>Total</td>${plants.map(p=>`<td>${fmtUnits(totAA[p])}</td>`).join('')}<td><strong>${fmtUnits(totAATotal)}</strong></td></tr></tfoot>`;
+  let rowsReal = activeMs.map(m=>{
+    const cells = plants.map(p=>`<td>${fmtUnits(UNITS_REAL_2026[m][p]||0)}</td>`).join('');
+    const rowTotal = plants.reduce((s,p)=>s+(UNITS_REAL_2026[m][p]||0),0);
+    return `<tr><td>${MESES_SHORT[MESES.indexOf(m)]}</td>${cells}<td><strong>${fmtUnits(rowTotal)}</strong></td></tr>`;
+  }).join('');
+  const totReal = {}; plants.forEach(p=>{ totReal[p] = activeMs.reduce((s,m)=>s+(UNITS_REAL_2026[m][p]||0),0); });
+  const totRealTotal = Object.values(totReal).reduce((a,b)=>a+b,0);
+  document.getElementById('table-units-2026').innerHTML = `
+    <thead><tr><th>Mes/CT</th>${plants.map(p=>`<th>${p}</th>`).join('')}<th>Total</th></tr></thead>
+    <tbody>${rowsReal}</tbody>
+    <tfoot><tr><td>Total</td>${plants.map(p=>`<td>${fmtUnits(totReal[p])}</td>`).join('')}<td><strong>${fmtUnits(totRealTotal)}</strong></td></tr></tfoot>`;
+}
+
+// ─── NUEVAS TABLAS: AA UNIDADES y ACUMULADO DE IMPORTES ───
+function buildUnitsAATable(){
+  const sec = 'absorcion';
+  const activeMs = activeMonths(sec);
+  if(!activeMs.length) return;
+  const plants = ['ACO','BLI','INY','LIQ','SOLI','CAL'];
+  
+  let html = '<thead><tr><th>CT</th><th>UNDS vs AA %</th><th>UNDS vs AA</th><th>vs AA</th></tr></thead><tbody>';
+  let sumUndsvAA = 0, sumVsAA = 0;
+  plants.forEach(p=>{
+    const unds_pea = activeMs.reduce((s,m)=>s+(D[sec][m].units_pea[p]||0),0);
+    const unds_real = activeMs.reduce((s,m)=>s+(D[sec][m].units_real[p]||0),0);
+    const pct = unds_pea ? ((unds_real - unds_pea)/unds_pea * 100) : 0;
+    const diff = unds_real - unds_pea;
+    sumUndsvAA += diff;
+    sumVsAA += unds_real;
+    const pctClass = pct >= 0 ? 'val-pos' : 'val-neg';
+    html += `<tr><td>${p}</td><td class="${pctClass}">${(pct).toFixed(1)} %</td><td>${fmt(diff)}</td><td>${fmt(unds_real)}</td></tr>`;
+  });
+  const pctTot = (sumUndsvAA / (sumUndsvAA - sumVsAA) * 100) || 0;
+  const pctTotClass = pctTot >= 0 ? 'val-pos' : 'val-neg';
+  html += `</tbody><tfoot><tr><td>Total</td><td class="${pctTotClass}">${(pctTot).toFixed(1)} %</td><td>${fmt(sumUndsvAA)}</td><td>${fmt(sumVsAA)}</td></tr></tfoot>`;
+  const el = document.getElementById('table-aa-unidades');
+  if(el) el.innerHTML = html;
+}
+
+function buildImportesAcumuladoTable(){
+  const sec = 'absorcion';
+  const activeMs = activeMonths(sec);
+  if(!activeMs.length) return;
+  
+  const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  let html = '<thead><tr><th>Mes</th><th>PEA_Costo</th><th>REAL por CT</th><th>VU por CT</th><th>BG_24 por CT</th><th>Suma STD</th></tr></thead><tbody>';
+  
+  activeMs.forEach(m=>{
+    const pea_tot = D[sec][m].pea.TOTAL || 0;
+    const real_tot = D[sec][m].real.TOTAL || 0;
+    const std_tot = D[sec][m].std.TOTAL || 0;
+    const var_otros = D[sec][m].var_otros.TOTAL || 0;
+    const vu = real_tot - pea_tot - var_otros;
+    const bg24 = std_tot;
+    
+    html += `<tr><td>${m}</td><td>${fmt(pea_tot)}</td><td>${fmt(real_tot)}</td><td>${fmt(vu)}</td><td>${fmt(bg24)}</td><td>${fmt(std_tot)}</td></tr>`;
+  });
+  
+  const pea_acum = activeMs.reduce((s,m)=>s+(D[sec][m].pea.TOTAL||0),0);
+  const real_acum = activeMs.reduce((s,m)=>s+(D[sec][m].real.TOTAL||0),0);
+  const std_acum = activeMs.reduce((s,m)=>s+(D[sec][m].std.TOTAL||0),0);
+  const var_acum = activeMs.reduce((s,m)=>s+(D[sec][m].var_otros.TOTAL||0),0);
+  const vu_acum = real_acum - pea_acum - var_acum;
+  
+  html += `</tbody><tfoot><tr><td>Total</td><td>${fmt(pea_acum)}</td><td>${fmt(real_acum)}</td><td>${fmt(vu_acum)}</td><td>${fmt(std_acum)}</td><td>${fmt(std_acum)}</td></tr></tfoot>`;
+  const el = document.getElementById('table-acum-importes');
+  if(el) el.innerHTML = html;
+}
+
+function buildAmorUnitsAATable(){
+  const sec = 'amortizacion';
+  const activeMs = activeMonths(sec);
+  if(!activeMs.length) return;
+  const plants = ['ACO','BLI','INY','LIQ','SOLI','CAL'];
+  
+  let html = '<thead><tr><th>CT</th><th>UNDS vs AA %</th><th>UNDS vs AA</th><th>vs AA</th></tr></thead><tbody>';
+  let sumUndsvAA = 0, sumVsAA = 0;
+  plants.forEach(p=>{
+    const unds_pea = activeMs.reduce((s,m)=>s+(D[sec][m].units_pea[p]||0),0);
+    const unds_real = activeMs.reduce((s,m)=>s+(D[sec][m].units_real[p]||0),0);
+    const pct = unds_pea ? ((unds_real - unds_pea)/unds_pea * 100) : 0;
+    const diff = unds_real - unds_pea;
+    sumUndsvAA += diff;
+    sumVsAA += unds_real;
+    const pctClass = pct >= 0 ? 'val-pos' : 'val-neg';
+    html += `<tr><td>${p}</td><td class="${pctClass}">${(pct).toFixed(1)} %</td><td>${fmt(diff)}</td><td>${fmt(unds_real)}</td></tr>`;
+  });
+  const pctTot = (sumUndsvAA / (sumUndsvAA - sumVsAA) * 100) || 0;
+  const pctTotClass = pctTot >= 0 ? 'val-pos' : 'val-neg';
+  html += `</tbody><tfoot><tr><td>Total</td><td class="${pctTotClass}">${(pctTot).toFixed(1)} %</td><td>${fmt(sumUndsvAA)}</td><td>${fmt(sumVsAA)}</td></tr></tfoot>`;
+  const el = document.getElementById('table-amor-aa-unidades');
+  if(el) el.innerHTML = html;
+}
+
+function buildAmorComparativa(){
+  const sec = 'amortizacion';
+  const activeMs = activeMonths(sec);
+  if(!activeMs.length) return;
+  
+  const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  let html = '<thead><tr><th>Mes Nombre</th><th>Unid_2024 por CT</th><th>Unidades PEA por CT</th><th>UNIDADES 2025 por CT</th></tr></thead><tbody>';
+  
+  activeMs.forEach(m=>{
+    const unds_pea = D[sec][m].units_pea.TOTAL || 0;
+    const unds_real = D[sec][m].units_real.TOTAL || 0;
+    const idx = MESES.indexOf(m);
+    
+    html += `<tr><td>${m}</td><td>${fmtUnits(unds_real)}</td><td>${fmtUnits(unds_pea)}</td><td>${fmtUnits(unds_real)}</td></tr>`;
+  });
+  
+  const unds_pea_acum = activeMs.reduce((s,m)=>s+(D[sec][m].units_pea.TOTAL||0),0);
+  const unds_real_acum = activeMs.reduce((s,m)=>s+(D[sec][m].units_real.TOTAL||0),0);
+  
+  html += `</tbody><tfoot><tr><td>Total</td><td>${fmtUnits(unds_real_acum)}</td><td>${fmtUnits(unds_pea_acum)}</td><td>${fmtUnits(unds_real_acum)}</td></tr></tfoot>`;
+  const el = document.getElementById('table-amor-comparativa');
+  if(el) el.innerHTML = html;
+}
+
+function buildAmorAcumImportes(){
+  const sec = 'amortizacion';
+  const activeMs = activeMonths(sec);
+  if(!activeMs.length) return;
+  
+  let html = '<thead><tr><th>Mes</th><th>PEA_Costo</th><th>REAL por CT</th><th>VU por CT</th><th>BG_24 por CT</th><th>Suma STD</th></tr></thead><tbody>';
+  
+  activeMs.forEach(m=>{
+    const pea_tot = D[sec][m].pea.TOTAL || 0;
+    const real_tot = D[sec][m].real.TOTAL || 0;
+    const std_tot = D[sec][m].std.TOTAL || 0;
+    const var_otros = D[sec][m].var_otros.TOTAL || 0;
+    const vu = real_tot - pea_tot - var_otros;
+    
+    html += `<tr><td>${m}</td><td>${fmt(pea_tot)}</td><td>${fmt(real_tot)}</td><td>${fmt(vu)}</td><td>${fmt(std_tot)}</td><td>${fmt(std_tot)}</td></tr>`;
+  });
+  
+  const pea_acum = activeMs.reduce((s,m)=>s+(D[sec][m].pea.TOTAL||0),0);
+  const real_acum = activeMs.reduce((s,m)=>s+(D[sec][m].real.TOTAL||0),0);
+  const std_acum = activeMs.reduce((s,m)=>s+(D[sec][m].std.TOTAL||0),0);
+  const var_acum = activeMs.reduce((s,m)=>s+(D[sec][m].var_otros.TOTAL||0),0);
+  const vu_acum = real_acum - pea_acum - var_acum;
+  
+  html += `</tbody><tfoot><tr><td>Total</td><td>${fmt(pea_acum)}</td><td>${fmt(real_acum)}</td><td>${fmt(vu_acum)}</td><td>${fmt(std_acum)}</td><td>${fmt(std_acum)}</td></tr></tfoot>`;
+  const el = document.getElementById('table-amor-acum-importes');
+  if(el) el.innerHTML = html;
+}
+
+function buildSummaryTable(sec, wrapperId, kpiId){
+  const msAll = viewMonths(sec);
+  const msClosed = msAll.filter(m=>MESES_REAL.includes(m));
+  const ms = msClosed.length ? msClosed : msAll;
+  if(!ms.length){
+    document.getElementById(wrapperId).innerHTML = `<div class="eff-placeholder"><p>No hay datos disponibles para la vista seleccionada.</p></div>`;
+    if(kpiId) document.getElementById(kpiId).textContent = '—';
+    return;
+  }
+  const plants = getPlantsToShow();
+  const uid_pre = wrapperId;
+  const rows = plants.map((p,pi)=>{
+    const peaP  = ms.reduce((s,m)=>s+(D[sec][m]?.pea[p]||0),0);
+    const realP = ms.reduce((s,m)=>s+(D[sec][m]?.real?.[p] ?? 0),0);
+    const diff  = realP - peaP;
+    const varPct = pct(realP, peaP);
+    const uid = uid_pre+'_ct'+pi;
+    let monthRows = '';
+    ms.forEach(m=>{
+      const mp = D[sec][m]?.pea[p] || 0;
+      const mr = D[sec][m]?.real?.[p] ?? 0;
+      if(mp===0 && mr===0) return;
+      const md=mr-mp, mv=pct(mr,mp);
+      monthRows += `<tr class="st-month-row" id="stm_${uid}_${m}" style="display:none;">
+        <td style="padding-left:28px;font-style:italic;color:#666;font-size:0.69rem;">${MESES_SHORT[MESES.indexOf(m)]}</td>
+        <td>${fmt(mp)}</td><td>${fmt(mr)}</td>
+        <td class="${vc(md)}">${fmt(md)}</td>
+        <td class="${vc(mv)}">${pctStr(mv)}</td>
+      </tr>`;
+    });
+    return `<tr>
+      <td style="display:flex;align-items:center;gap:5px;">
+        ${monthRows ? `<button class="var-expand-btn" id="stexp_${uid}" onclick="stExpand('${uid}',event)">+</button>` : '<span style="width:24px;display:inline-block;"></span>'}
+        <strong>${p}</strong>
+      </td>
+      <td>${fmt(peaP)}</td><td>${fmt(realP)}</td>
+      <td class="${vc(diff)}">${fmt(diff)}</td>
+      <td class="${vc(varPct)}">${pctStr(varPct)}</td>
+    </tr>${monthRows}`;
+  }).join('');
+  const totPea  = ms.reduce((s,m)=>s+getPlantValue(sec,m,'pea'),0);
+  const totReal = ms.reduce((s,m)=>s+getPlantValue(sec,m,'real'),0);
+  const totStd  = ms.reduce((s,m)=>s+(D[sec][m]?.std?.TOTAL||0),0);
+  const totDiff = totReal - totPea;
+  const totVar  = pct(totStd, totPea);  // ABS vs PEA % usa STD
+  const cumplPct = totPea > 0 ? (totStd / totPea) : 0;  // Cumplimiento usa STD, no REAL
+  const cumplimiento = totPea > 0 ? (cumplPct * 100) : 0;  // Cumplimiento = (STD / PEA) × 100%
+  const cumpl    = totPea > 0 ? cumplimiento.toFixed(1) + '%' : '—';
+  const varCumpl = totPea > 0 ? pctStr(totVar) : '—';
+  document.getElementById(wrapperId).innerHTML = `
+    <table>
+      <thead><tr><th>CT</th><th>PEA</th><th>REAL</th><th>PEA VS REAL</th><th>Var %</th></tr></thead>
+      <tbody>${rows}</tbody>
+      <tfoot><tr><td>Total</td><td>${fmt(totPea)}</td><td>${fmt(totReal)}</td>
+        <td class="${vc(totDiff)}">${fmt(totDiff)}</td>
+        <td class="${vc(totVar)}">${pctStr(totVar)}</td></tr></tfoot>
+    </table>`;
+  if(kpiId){
+    const el = document.getElementById(kpiId);
+    el.textContent = cumpl;
+    el.style.color = cumplimiento >= 100 ? 'var(--positive)' : 'var(--negative)';
+    const subEl = document.getElementById(kpiId + '-sub');
+    if(subEl) subEl.textContent = varCumpl + ' vs PEA';
+  }
+}
+
+function stExpand(uid, event){
+  event.stopPropagation();
+  const btn = document.getElementById('stexp_'+uid);
+  const isOpen = btn && btn.classList.contains('open');
+  if(btn){ btn.classList.toggle('open',!isOpen); btn.textContent=isOpen?'+':'\u2212'; }
+  document.querySelectorAll('[id^="stm_'+uid+'_"]').forEach(tr=>{ tr.style.display = isOpen ? 'none' : 'table-row'; });
+}
+
+function buildPeriodTables(sec, containerId){
+  const container = document.getElementById(containerId);
+  const groups = buildPeriods(sec);
+  if(!groups.length){ container.innerHTML=''; return; }
+  const cid = containerId;
+  function makeTable(title, groups){
+    const rows = groups.map((g, gi)=>{
+      const uid = cid+'_g'+gi;
+      const pea  = g.months.reduce((s,m)=>s+getPlantValue(sec,m,'pea'),0);
+      const real = g.months.reduce((s,m)=>s+getPlantValue(sec,m,'real'),0);
+      const diff = real - pea; const v = pct(real, pea);
+      const showExpand = (currentPlant==='ALL');
+      let ctRows = '';
+      if(showExpand){
+        PLANTAS.forEach(p=>{
+          const cp  = g.months.reduce((s,m)=>{ const d=D[sec][m]; return s+(d?.pea?.[p]||0); },0);
+          const cr  = g.months.reduce((s,m)=>{ const d=D[sec][m]; return s+(d?.real?.[p]||0)+(d?.std?.[p]||0); },0);
+          if(cp===0 && cr===0) return;
+          const cd=cr-cp, cv=pct(cr,cp);
+          ctRows += `<tr class="pt-ct-row" id="ptct_${uid}_${p}" style="display:none;">
+            <td style="padding-left:28px;font-style:italic;color:#555;font-size:0.69rem;">${p}</td>
+            <td>${fmt(cp)}</td><td>${fmt(cr)}</td>
+            <td class="${vc(cd)}">${fmt(cd)}</td>
+            <td class="${vc(cv)}">${pctStr(cv)}</td>
+          </tr>`;
+        });
+      }
+      return `<tr id="ptr_${uid}">
+        <td style="display:flex;align-items:center;gap:5px;">
+          ${showExpand && ctRows ? `<button class="var-expand-btn" id="ptexp_${uid}" onclick="ptExpand('${uid}',event)">+</button>` : '<span style="width:24px;display:inline-block;"></span>'}
+          ${g.label}
+        </td>
+        <td>${fmt(pea)}</td><td>${fmt(real)}</td>
+        <td class="${vc(diff)}">${fmt(diff)}</td>
+        <td class="${vc(v)}">${pctStr(v)}</td>
+      </tr>${ctRows}`;
+    }).join('');
+    const totPea  = groups.reduce((s,g)=>s+g.months.reduce((s2,m)=>s2+getPlantValue(sec,m,'pea'),0),0);
+    const totReal = groups.reduce((s,g)=>s+g.months.reduce((s2,m)=>s2+getPlantValue(sec,m,'real'),0),0);
+    return `<div class="table-card" style="margin-bottom:1rem">
+      <div class="period-table-title">${title}</div>
+      <table>
+        <thead><tr><th>${title}</th><th>PEA</th><th>Real</th><th>Variacion</th><th>Var %</th></tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot><tr><td>Total</td><td>${fmt(totPea)}</td><td>${fmt(totReal)}</td>
+          <td class="${vc(totReal-totPea)}">${fmt(totReal-totPea)}</td>
+          <td class="${vc(pct(totReal,totPea))}">${pctStr(pct(totReal,totPea))}</td></tr></tfoot>
+      </table></div>`;
+  }
+  const title = currentPeriod==='trimestral'?'Trimestre':currentPeriod==='semestral'?'Semestre':'Mensual';
+  container.innerHTML = `<div class="period-tables">${makeTable(title,groups)}</div>`;
+}
+
+function ptExpand(uid, event){
+  event.stopPropagation();
+  const btn = document.getElementById('ptexp_'+uid);
+  const isOpen = btn && btn.classList.contains('open');
+  if(btn){ btn.classList.toggle('open',!isOpen); btn.textContent=isOpen?'+':'\u2212'; }
+  document.querySelectorAll('[id^="ptct_'+uid+'_"]').forEach(tr=>{ tr.style.display = isOpen ? 'none' : 'table-row'; });
+}
+
+function buildROTab(){
+  destroyChart('chart-ro-abs'); destroyChart('chart-ro-amor');
+  const closed = activeMonths('absorcion').length;
+  const labels = MESES_SHORT;
+  function roChart(id, sec){
+    const pea  = MESES.map(m=>D[sec][m]?.pea?.TOTAL||0);
+    const real = MESES.map(m=>D[sec][m]?.real?.TOTAL||0);
+    const realColors = MESES.map((_,i)=>i<closed?'rgba(192,57,43,0.85)':'rgba(192,57,43,0.25)');
+    const opts = lineOpts();
+    charts[id] = new Chart(document.getElementById(id).getContext('2d'),{
+      type:'bar', data:{labels, datasets:[
+        {label:'PEA 2026', data:pea, type:'line', borderColor:'#9e9e9e', borderDash:[6,4], backgroundColor:'transparent', pointRadius:3, borderWidth:2, tension:0.3},
+        {label:'Real / R&O', data:real, backgroundColor:realColors, borderColor:'rgba(192,57,43,0.4)', borderWidth:0, borderRadius:2}
+      ]}, options:opts
+    });
+  }
+  roChart('chart-ro-abs','ro_abs'); roChart('chart-ro-amor','ro_amor');
+  const roRows = MESES.map((m,i)=>{
+    const pa = D.ro_abs[m]?.pea?.TOTAL||0, ra = D.ro_abs[m]?.real?.TOTAL||0;
+    const pm = D.ro_amor[m]?.pea?.TOTAL||0, rm = D.ro_amor[m]?.real?.TOTAL||0;
+    const isReal = i<closed;
+    return `<tr>
+      <td>${m}</td>
+      <td style="font-size:0.7rem;color:${isReal?'var(--positive)':'#aaa'}">${isReal?'✓ Correcto':'Est.'}</td>
+      <td>${fmt(pa)}</td><td>${fmt(ra)}</td>
+      <td class="${vc(pct(ra,pa))}">${pctStr(pct(ra,pa))}</td>
+      <td>${fmt(pm)}</td><td>${fmt(rm)}</td>
+      <td class="${vc(pct(rm,pm))}">${pctStr(pct(rm,pm))}</td>
+    </tr>`;
+  }).join('');
+  const totPA=MESES.reduce((s,m)=>s+(D.ro_abs[m]?.pea?.TOTAL||0),0), totRA=MESES.reduce((s,m)=>s+(D.ro_abs[m]?.real?.TOTAL||0),0);
+  const totPM=MESES.reduce((s,m)=>s+(D.ro_amor[m]?.pea?.TOTAL||0),0), totRM=MESES.reduce((s,m)=>s+(D.ro_amor[m]?.real?.TOTAL||0),0);
+  document.getElementById('table-ro-wrap').innerHTML = `
+    <table>
+      <thead><tr><th>Mes</th><th>Estado</th><th>ABS PEA</th><th>ABS Real/R&O</th><th>Var % Abs</th><th>AMOR PEA</th><th>AMOR Real/R&O</th><th>Var% Amor</th></tr></thead>
+      <tbody>${roRows}</tbody>
+      <tfoot><tr><td>TOTAL</td><td></td><td>${fmt(totPA)}</td><td>${fmt(totRA)}</td>
+        <td class="${vc(pct(totRA,totPA))}">${pctStr(pct(totRA,totPA))}</td>
+        <td>${fmt(totPM)}</td><td>${fmt(totRM)}</td>
+        <td class="${vc(pct(totRM,totPM))}">${pctStr(pct(totRM,totPM))}</td></tr></tfoot>
+    </table>`;
+}
+
+function computeVarForPeriod(months, plant){
+  const plants = (plant === 'ALL' || !plant) ? PLANTAS : [plant];
+  let abs_pea=0, abs_std=0, unds_pea=0, unds_real=0, pea_total_all=0;
+  months.forEach(m=>{
+    const d = D.absorcion[m]; if(!d) return;
+    plants.forEach(p=>{ abs_pea+=d.pea[p]||0; abs_std+=d.std[p]||0; unds_pea+=d.units_pea[p]||0; unds_real+=d.units_real[p]||0; });
+    PLANTAS.forEach(p=>{ pea_total_all += d.pea[p]||0; });
+  });
+  const var_vol = abs_std - abs_pea;
+  const var_pct = pea_total_all !== 0 ? var_vol / pea_total_all : 0;
+  return { abs_pea, var_cost: 0, var_vol, var_otros: 0, abs_real: abs_std, unds_pea, unds_real, var_pct, unds_vs_pea_pct: calcUndsPct(unds_pea, unds_real) };
+}
+
+function varRowCells(v){
+  return `<td>${fmt(v.abs_pea)}</td>
+    <td class="${vc(v.var_cost)}">${fmt(v.var_cost)}</td>
+    <td class="${vc(v.var_vol)}">${fmt(v.var_vol)}</td>
+    <td class="${vc(v.var_otros)}">${fmt(v.var_otros)}</td>
+    <td>${fmt(v.abs_real)}</td>
+    <td>${fmtN(v.unds_pea)}</td>
+    <td>${fmtN(v.unds_real)}</td>
+    <td class="${vc(v.unds_vs_pea_pct)}">${pctStr(v.unds_vs_pea_pct)}</td>
+    <td class="${vc(v.var_pct)}">${pctStr(v.var_pct)}</td>`;
+}
+
+function buildVariacionTab(){
+  destroyChart('chart-var-plantas'); destroyChart('chart-var-components');
+  const activeMes = activeMonths('absorcion');
+  const selMes = selectedMonths.size > 0
+    ? [...selectedMonths].filter(m=>activeMes.includes(m)).sort((a,b)=>MESES.indexOf(a)-MESES.indexOf(b))
+    : activeMes;
+  const plants = getPlantsToShow();
+  const chartData = plants.map(p=>computeVarForPeriod(selMes, p));
+  charts['chart-var-plantas'] = new Chart(document.getElementById('chart-var-plantas').getContext('2d'),{
+    type:'bar', data:{labels:plants, datasets:[
+      {label:'ABS PEA', data:chartData.map(v=>v.abs_pea), backgroundColor:'rgba(158,158,158,0.35)', borderColor:'#9e9e9e', borderWidth:1.5, borderRadius:3},
+      {label:'ABS Real', data:chartData.map(v=>v.abs_real), backgroundColor:chartData.map(v=>v.var_pct<0?'rgba(192,57,43,0.75)':'rgba(39,174,96,0.75)'), borderRadius:3, borderWidth:0}
+    ]}, options:lineOpts()
+  });
+  charts['chart-var-components'] = new Chart(document.getElementById('chart-var-components').getContext('2d'),{
+    type:'bar', data:{labels:plants, datasets:[
+      {label:'Var. Volumen', data:chartData.map(v=>v.var_vol), backgroundColor:'rgba(192,57,43,0.75)', borderRadius:3, stack:'v'},
+      {label:'Var. Otros', data:chartData.map(v=>v.var_otros), backgroundColor:'rgba(155,89,182,0.75)', borderRadius:3, stack:'v'}
+    ]},
+    options:{...lineOpts(), scales:{...lineOpts().scales, x:{...lineOpts().scales.x,stacked:true}, y:{...lineOpts().scales.y,stacked:true}}}
+  });
+  const titleEl = document.getElementById('var-period-title');
+  if(titleEl){
+    let pLabel = 'YTD';
+    if(activeQuickPeriod !== 'ALL') pLabel = activeQuickPeriod;
+    else if(selectedMonths.size === 1) pLabel = [...selectedMonths][0];
+    else if(selectedMonths.size > 1){
+      const sorted = [...selectedMonths].sort((a,b)=>MESES.indexOf(a)-MESES.indexOf(b));
+      pLabel = MESES_SHORT[MESES.indexOf(sorted[0])] + '\u2013' + MESES_SHORT[MESES.indexOf(sorted[sorted.length-1])];
+    }
+    titleEl.textContent = `Variacion por CT \u2014 ${pLabel}`;
+  }
+  let bodyRows = '';
+  plants.forEach(p=>{
+    const v = computeVarForPeriod(selMes, p);
+    const uid = 'var_' + p;
+    bodyRows += `<tr>
+      <td style="display:flex;align-items:center;gap:4px;">
+        <button class="var-expand-btn" id="ebtn_${uid}" onclick="toggleVarExpand('${uid}',this)">+</button>
+        <strong>${p}</strong>
+      </td>${varRowCells(v)}</tr>`;
+    selMes.forEach(m=>{
+      const vm = computeVarForPeriod([m], p);
+      if(vm.abs_pea === 0 && vm.abs_real === 0) return;
+      bodyRows += `<tr class="var-month-row" id="mrow_${uid}_${m}">
+        <td>${MESES_SHORT[MESES.indexOf(m)]}</td>${varRowCells(vm)}</tr>`;
+    });
+  });
+  const totPlants = (currentPlant === 'ALL') ? PLANTAS : [currentPlant];
+  let totV = {abs_pea:0,var_cost:0,var_vol:0,var_otros:0,abs_real:0,unds_pea:0,unds_real:0};
+  totPlants.forEach(p=>{ const v=computeVarForPeriod(selMes,p); totV.abs_pea+=v.abs_pea; totV.var_vol+=v.var_vol; totV.abs_real+=v.abs_real; totV.unds_pea+=v.unds_pea; totV.unds_real+=v.unds_real; });
+  let pea_total_all=0;
+  selMes.forEach(m=>{ const d=D.absorcion[m]; if(!d) return; PLANTAS.forEach(p2=>pea_total_all+=d.pea[p2]||0); });
+  totV.var_pct = pea_total_all!==0 ? totV.var_vol/pea_total_all : 0;
+  totV.unds_vs_pea_pct = calcUndsPct(totV.unds_pea, totV.unds_real);
+  document.getElementById('table-var-wrap').innerHTML = `
+    <table>
+      <thead><tr>
+        <th style="text-align:left;min-width:60px;">CT</th>
+        <th>ABS PEA</th><th>Var. Costo</th><th>Var. Volumen</th><th>Var. Otros</th>
+        <th>ABS Real</th><th>Unds PEA</th><th>Unds Real</th><th>Var% Und</th><th>Var% Abs</th>
+      </tr></thead>
+      <tbody>${bodyRows}</tbody>
+      <tfoot><tr><td>TOTAL GENERAL</td>${varRowCells(totV)}</tr></tfoot>
+    </table>`;
+  buildAcumTable();
+}
+
+function toggleVarExpand(uid, btn){
+  const isOpen = btn.classList.contains('open');
+  btn.classList.toggle('open', !isOpen);
+  btn.textContent = isOpen ? '+' : '\u2212';
+  document.querySelectorAll('[id^="mrow_'+uid+'_"]').forEach(tr=>tr.classList.toggle('show', !isOpen));
+}
+
+function buildAcumTable(){
+  const activeMes = activeMonths('absorcion');
+  const selMes = selectedMonths.size > 0
+    ? [...selectedMonths].filter(m=>activeMes.includes(m)).sort((a,b)=>MESES.indexOf(a)-MESES.indexOf(b))
+    : activeMes;
+  const plant = currentPlant;
+  const titleEl = document.getElementById('var-acum-title');
+  const wrap = document.getElementById('table-var-acum');
+  if(!wrap) return;
+  if(selMes.length === 0){ wrap.innerHTML=''; if(titleEl) titleEl.style.display='none'; return; }
+  if(titleEl) titleEl.style.display='';
+  if(titleEl){
+    let pLabel = 'YTD';
+    if(activeQuickPeriod !== 'ALL') pLabel = activeQuickPeriod;
+    else if(selectedMonths.size > 0){
+      const f=MESES_SHORT[MESES.indexOf(selMes[0])], l=MESES_SHORT[MESES.indexOf(selMes[selMes.length-1])];
+      pLabel = f === l ? f : f+'\u2013'+l;
+    }
+    titleEl.textContent = `Acumulado Mes a Mes \u2014 ${pLabel}`;
+  }
+  let runPea=0,runVol=0,runReal=0,runUpea=0,runUreal=0,runPeaTot=0;
+  let rows = '';
+  selMes.forEach((m, idx)=>{
+    const v = computeVarForPeriod([m], plant);
+    runPea+=v.abs_pea; runVol+=v.var_vol; runReal+=v.abs_real; runUpea+=v.unds_pea; runUreal+=v.unds_real;
+    const d = D.absorcion[m]; if(d) PLANTAS.forEach(p2=>runPeaTot += d.pea[p2]||0);
+    const cumVarPct = runPeaTot !== 0 ? runVol / runPeaTot : 0;
+    const cumUndsPct = calcUndsPct(runUpea, runUreal);
+    const isLast = idx === selMes.length - 1;
+    rows += `<tr class="${isLast ? 'acum-last-row' : ''}">
+      <td>${MESES_SHORT[MESES.indexOf(m)]}</td>
+      <td>${fmt(v.abs_pea)}</td><td>${fmt(v.abs_real)}</td>
+      <td class="${vc(v.var_vol)}">${fmt(v.var_vol)}</td>
+      <td class="${vc(v.var_pct)}">${pctStr(v.var_pct)}</td>
+      <td>${fmtN(v.unds_pea)}</td><td>${fmtN(v.unds_real)}</td>
+      <td class="${vc(calcUndsPct(v.unds_pea,v.unds_real))}">${pctStr(calcUndsPct(v.unds_pea,v.unds_real))}</td>
+      <td style="border-left:2px solid #ccc;">${fmt(runPea)}</td>
+      <td>${fmt(runReal)}</td>
+      <td class="${vc(runVol)}">${fmt(runVol)}</td>
+      <td class="${vc(cumVarPct)}">${pctStr(cumVarPct)}</td>
+      <td>${fmtN(runUpea)}</td><td>${fmtN(runUreal)}</td>
+      <td class="${vc(cumUndsPct)}">${pctStr(cumUndsPct)}</td>
+    </tr>`;
+  });
+  const ctLabel = plant === 'ALL' ? 'Todas las plantas' : plant;
+  wrap.innerHTML = `
+    <div style="font-size:0.68rem;color:#888;padding:8px 9px 4px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">CT: ${ctLabel}</div>
+    <div style="overflow-x:auto;">
+    <table style="min-width:80px;">
+      <thead>
+        <tr>
+          <th rowspan="2" style="text-align:left;vertical-align:bottom;">Mes</th>
+          <th colspan="7" style="text-align:center;border-bottom:1px solid rgba(255,255,255,0.3);background:#777;">Mensual</th>
+          <th colspan="7" style="text-align:center;border-bottom:1px solid rgba(255,255,255,0.3);border-left:2px solid #ccc;">Acumulado</th>
+          <th>ABS PEA</th><th>ABS Real</th><th>Var Vol</th><th>Var%</th>
+          <th>Unds PEA</th><th>Unds Real</th><th>Var% Und</th>
+          <th style="border-left:2px solid #ccc;">ABS PEA</th><th>ABS Real</th><th>Var Vol</th><th>Var%</th>
+          <th>Unds PEA</th><th>Unds Real</th><th>Var% Und</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+        </table>
+        </div>`;
+}
+
+function calcUndsPct(pea,real){
+  if(pea===0&&real===0) return 0;
+  if(pea===0) return real>0 ? 1 : -1;
+  return (real-pea)/Math.abs(pea);
+}
+
+function getVsPeaMonths(){
+  const active = activeMonths('absorcion');
+  if(selectedMonths.size===0) return active;
+  return [...selectedMonths].filter(m=>active.includes(m)).sort((a,b)=>MESES.indexOf(a)-MESES.indexOf(b));
+}
+
+function buildVsPeaTab(){
+  const activeMes  = activeMonths('absorcion');
+  const plantFilter = (vspea_selectedPlant && vspea_selectedPlant!=='ALL') ? vspea_selectedPlant : null;
+  const selMes = selectedMonths.size > 0
+    ? [...selectedMonths].filter(m=>activeMes.includes(m)).sort((a,b)=>MESES.indexOf(a)-MESES.indexOf(b))
+    : activeMes;
+  let pLabel = 'YTD';
+  if(activeQuickPeriod !== 'ALL') pLabel = activeQuickPeriod;
+  else if(selMes.length === 1) pLabel = selMes[0];
+  else if(selMes.length > 0)
+    pLabel = MESES_SHORT[MESES.indexOf(selMes[0])] + '\u2013' + MESES_SHORT[MESES.indexOf(selMes[selMes.length-1])];
+  const refLabel = pLabel;
+  let pd = {};
+  PLANTAS.forEach(p=>{
+    const plants = plantFilter ? (p===plantFilter?[p]:[]) : [p];
+    if(plants.length===0){ pd[p]={abs_pea:0,abs_real:0,unds_pea:0,unds_real:0,var_costo:0,var_vol:0}; return; }
+    let abs_pea=0,abs_real=0,unds_pea=0,unds_real=0;
+    selMes.forEach(m=>{
+      const d=D.absorcion[m]; if(!d) return;
+      abs_pea+=d.pea[p]||0; abs_real+=d.std[p]||0; unds_pea+=d.units_pea[p]||0; unds_real+=d.units_real[p]||0;
+    });
+    const var_vol = abs_real - abs_pea;
+    pd[p] = { abs_pea, abs_real, unds_pea, unds_real, var_costo: 0, var_vol };
+  });
+  const tot={abs_pea:0,abs_real:0,unds_pea:0,unds_real:0,var_costo:0,var_vol:0};
+  PLANTAS.forEach(p=>Object.keys(tot).forEach(k=>tot[k]+=pd[p][k]));
+  const pea_denom=tot.abs_pea, cumpl=pea_denom?tot.abs_real/pea_denom:0, absGap=tot.abs_real-pea_denom;
+  document.getElementById('vspea-kpis').innerHTML=`
+    <div class="vspea-kpi">
+      <div class="vspea-kpi-label">Cumplimiento ${refLabel}</div>
+      <div class="vspea-kpi-value" style="color:${cumpl>=1?'var(--positive)':'var(--negative)'}">${((cumpl-1)*100).toFixed(1)}%</div>
+      <div class="vspea-kpi-sub">${(cumpl*100).toFixed(1)}% del PEA</div>
+    </div>
+    <div class="vspea-kpi">
+      <div class="vspea-kpi-label">Absorcion Real ${refLabel}</div>
+      <div class="vspea-kpi-value">${fmtGs(tot.abs_real)}</div>
+      <div class="vspea-kpi-sub">Gs.</div>
+    </div>
+    <div class="vspea-kpi">
+      <div class="vspea-kpi-label">PEA ${refLabel}</div>
+      <div class="vspea-kpi-value">${fmtGs(pea_denom)}</div>
+      <div class="vspea-kpi-sub">Gs.</div>
+    </div>
+    <div class="vspea-kpi">
+      <div class="vspea-kpi-label">Absorcion Faltante</div>
+      <div class="vspea-kpi-value" style="color:${absGap<0?'var(--negative)':'var(--positive)'}">${fmtGs(absGap)}</div>
+      <div class="vspea-kpi-sub">${pea_denom?((absGap/pea_denom)*100).toFixed(1)+'%':'—'}</div>
+    </div>`;
+  const rows = PLANTAS.map(p=>{
+    const d=pd[p];
+    const unds_pct=calcUndsPct(d.unds_pea,d.unds_real), abs_pct=pea_denom?(d.abs_real-d.abs_pea)/pea_denom:0;
+    const vcost_pct=pea_denom?d.var_costo/pea_denom:0, vvol_pct=pea_denom?d.var_vol/pea_denom:0;
+    const unds_diff=d.unds_real-d.unds_pea, faltante=d.abs_real-d.abs_pea, vspea_pct=pea_denom?faltante/pea_denom:0;
+    return`<tr>
+      <td><strong>${p}</strong></td>
+      <td class="${vc(unds_pct)}">${pctStr(unds_pct)}</td>
+      <td class="${vc(abs_pct)}">${pctStr(abs_pct)}</td>
+      <td class="${vc(vcost_pct)}">${pctStr(vcost_pct)}</td>
+      <td class="${vc(vvol_pct)}">${pctStr(vvol_pct)}</td>
+      <td class="${vc(unds_diff)}">${fmtN(unds_diff)}</td>
+      <td class="${vc(d.var_costo)}">${fmtGs(d.var_costo)}</td>
+      <td class="${vc(d.var_vol)}">${fmtGs(d.var_vol)}</td>
+      <td class="${vc(faltante)}">${fmtGs(faltante)}</td>
+      <td class="${vc(vspea_pct)}">${pctStr(vspea_pct)}</td>
+    </tr>`;
+  }).join('');
+  const t_unds_pct=calcUndsPct(tot.unds_pea,tot.unds_real), t_abs_pct=pea_denom?(tot.abs_real-tot.abs_pea)/pea_denom:0;
+  const t_vcost_pct=pea_denom?tot.var_costo/pea_denom:0, t_vvol_pct=pea_denom?tot.var_vol/pea_denom:0;
+  const t_unds_diff=tot.unds_real-tot.unds_pea, t_faltante=tot.abs_real-tot.abs_pea, t_vspea_pct=pea_denom?t_faltante/pea_denom:0;
+  document.getElementById('vspea-table-wrap').innerHTML=`
+    <div style="display:flex;gap:0.6rem;margin:0 0 0.75rem;align-items:center;">
+      <div class="section-title" style="margin:0;">Analisis de Variacion por Centro de Trabajo</div>
+      <div style="margin-left:auto;display:flex;gap:0.4rem;align-items:center;">
+        <label style="font-weight:700;font-size:0.78rem;">CT:</label>
+        <select id="vspea-ct-select" onchange="onVsPeaFilterChange()" style="padding:4px 6px;border:1px solid #ddd;border-radius:4px;font-size:0.78rem;">
+          ${['ALL'].concat(PLANTAS).map(c=>`<option value="${c}" ${vspea_selectedPlant===c?'selected':''}>${c==='ALL'?'Todas':c}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <table>
+      <thead><tr>
+        <th>CT</th><th>UNDS vs PEA %</th><th>ABS vs PEA %</th>
+        <th>Var Costo %</th><th>Var Volumen %</th><th>UNDS vs PEA</th>
+        <th>Eficiencia (Gs)</th><th>Volumen (Gs)</th>
+        <th>Abs Faltante (Gs)</th><th>vs PEA %</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+      <tfoot><tr>
+        <td>TOTAL</td>
+        <td class="${vc(t_unds_pct)}">${pctStr(t_unds_pct)}</td>
+        <td class="${vc(t_abs_pct)}">${pctStr(t_abs_pct)}</td>
+        <td class="${vc(t_vcost_pct)}">${pctStr(t_vcost_pct)}</td>
+        <td class="${vc(t_vvol_pct)}">${pctStr(t_vvol_pct)}</td>
+        <td class="${vc(t_unds_diff)}">${fmtN(t_unds_diff)}</td>
+        <td class="${vc(tot.var_costo)}">${fmtGs(tot.var_costo)}</td>
+        <td class="${vc(tot.var_vol)}">${fmtGs(tot.var_vol)}</td>
+        <td class="${vc(t_faltante)}">${fmtGs(t_faltante)}</td>
+        <td class="${vc(t_vspea_pct)}">${pctStr(t_vspea_pct)}</td>
+      </tr></tfoot>
+    </table>`;
+  const wrap = document.getElementById('vspea-table-wrap');
+  const existing = document.getElementById('vspea-monthly-section');
+  if(existing) existing.remove();
+  if(selMes.length > 1){
+    let cumPea=0,cumReal=0,cumUpea=0,cumUreal=0,pea_all_cum=0;
+    const monthRows = selMes.map((m,idx)=>{
+      const plants = plantFilter ? [plantFilter] : PLANTAS;
+      const d = D.absorcion[m]; if(!d) return '';
+      let mPea=0,mStd=0,mUpea=0,mUreal=0,mPeaAll=0;
+      plants.forEach(p=>{ mPea+=d.pea[p]||0; mStd+=d.std[p]||0; mUpea+=d.units_pea[p]||0; mUreal+=d.units_real[p]||0; });
+      PLANTAS.forEach(p=>mPeaAll+=d.pea[p]||0);
+      cumPea+=mPea; cumReal+=mStd; cumUpea+=mUpea; cumUreal+=mUreal; pea_all_cum+=mPeaAll;
+      const gap=cumReal-cumPea, pct_m=pea_all_cum?gap/pea_all_cum:0, cumpl_m=cumPea?cumReal/cumPea:0;
+      const isLast=idx===selMes.length-1;
+      return`<tr style="${isLast?'font-weight:700;background:rgba(192,57,43,0.06);':''}">
+        <td>${MESES_SHORT[MESES.indexOf(m)]}${isLast?' \u25c0':''}</td>
+        <td>${fmtGs(cumPea)}</td><td>${fmtGs(cumReal)}</td>
+        <td class="${vc(gap)}">${fmtGs(gap)}</td>
+        <td class="${vc(pct_m)}">${pctStr(pct_m)}</td>
+        <td style="font-weight:700;color:${cumpl_m>=1?'var(--positive)':'var(--negative)'}">${(cumpl_m*100).toFixed(1)}%</td>
+      </tr>`;
+    }).join('');
+    wrap.innerHTML += `
+      <div id="vspea-monthly-section" style="margin-top:1.25rem;">
+        <div class="section-title">Progresion Acumulada — ${plantFilter||'Total'} (${refLabel})</div>
+        <div class="table-card" style="margin-top:0.4rem;">
+          <table>
+            <thead><tr>
+              <th>Mes</th><th>PEA Acum.</th><th>ABS REAL.</th>
+              <th>Gap (Gs)</th><th>Var %</th><th>Cumpl %</th>
+            </tr></thead>
+            <tbody>${monthRows}</tbody>
+          </table>
+        </div>
+      </div>`;
+  }
+  const eff_pos=PLANTAS.filter(p=>pd[p].var_costo>0).map(p=>`${p}: +${fmtGs(pd[p].var_costo)}`).join(' \u00b7 ');
+  const eff_neg=PLANTAS.filter(p=>pd[p].var_costo<0).map(p=>`${p}: ${fmtGs(pd[p].var_costo)}`).join(' \u00b7 ');
+  const vol_neg=PLANTAS.filter(p=>pd[p].var_vol<0).map(p=>`${p}: ${fmtGs(pd[p].var_vol)}`).join(' \u00b7 ');
+  document.getElementById('vspea-bridge').innerHTML=`
+    <div class="bridge-title">Apertura de la Variacion \u2014 ${refLabel}</div>
+    <div class="bridge-row"><span class="bridge-row-label">Variacion de Costo Total</span>
+      <span class="bridge-row-values"><span class="${vc(tot.var_costo)}">${fmtGs(tot.var_costo)}</span><span class="${vc(t_vcost_pct)}">${pctStr(t_vcost_pct)}</span></span></div>
+    <div class="bridge-row"><span class="bridge-row-label">Variacion de Volumen Total</span>
+      <span class="bridge-row-values"><span class="${vc(tot.var_vol)}">${fmtGs(tot.var_vol)}</span><span class="${vc(t_vvol_pct)}">${pctStr(t_vvol_pct)}</span></span></div>
+    <div class="bridge-row"><span class="bridge-row-label">Total Absorcion Faltante (Real \u2212 PEA)</span>
+      <span class="bridge-row-values"><span class="${vc(t_faltante)}">${fmtGs(t_faltante)}</span><span class="${vc(t_abs_pct)}">${pctStr(t_abs_pct)}</span></span></div>
+    ${eff_pos?`<div class="bridge-row"><span class="bridge-row-label" style="color:var(--positive)">\u2191 Mejora eficiencia: ${eff_pos}</span></div>`:''}
+    ${eff_neg?`<div class="bridge-row"><span class="bridge-row-label" style="color:var(--negative)">\u2193 Mayor costo: ${eff_neg}</span></div>`:''}
+    ${vol_neg?`<div class="bridge-row"><span class="bridge-row-label" style="color:var(--negative)">\u2193 Menor volumen: ${vol_neg}</span></div>`:''}`;
+}
+
+function onVsPeaFilterChange(){
+  const sel = document.getElementById('vspea-ct-select');
+  if(sel) vspea_selectedPlant = sel.value;
+  buildVsPeaTab();
+}
+
+function updatePeriodInfo(){
+  const ms = activeMonths('absorcion');
+  if(!ms.length){ document.getElementById('periodInfo').textContent='Sin datos'; return; }
+  const viewMs = selectedMonths.size===0 ? ms : ms.filter(m=>selectedMonths.has(m));
+  if(!viewMs.length){ document.getElementById('periodInfo').textContent='Sin seleccion con datos'; return; }
+  const plantLabel = currentPlant==='ALL' ? '' : ` · ${currentPlant}`;
+  if(selectedMonths.size===0){
+    const f=MESES_SHORT[MESES.indexOf(viewMs[0])], l=MESES_SHORT[MESES.indexOf(viewMs[viewMs.length-1])];
+    document.getElementById('periodInfo').textContent = `Periodo activo: ${f} – ${l} 2026${plantLabel}`;
+  } else if(selectedMonths.size===1){
+    document.getElementById('periodInfo').textContent = `Mes seleccionado: ${MESES_SHORT[MESES.indexOf(viewMs[0])]} 2026${plantLabel}`;
+  } else {
+    document.getElementById('periodInfo').textContent = `Meses: ${viewMs.map(m=>MESES_SHORT[MESES.indexOf(m)]).join(', ')} 2026${plantLabel}`;
+  }
+}
+
+let currentTab = 'absorcion';
+function switchTab(name){
+  currentTab = name;
+  document.querySelectorAll('.tab').forEach((t,i)=>{
+    t.classList.toggle('active',['absorcion','amortizacion','ro','variacion','vspea','eficiencia'][i]===name);
+  });
+  document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+  document.getElementById(`tab-${name}`).classList.add('active');
+  if(name==='ro') buildROTab();
+  if(name==='variacion') buildVariacionTab();
+  if(name==='vspea') buildVsPeaTab();
+}
+
+function refreshAll(){
+  updatePeriodInfo();
+  buildInfoBox();
+  buildLineCharts('absorcion','chart-abs-units','chart-abs-values');
+  buildAmortizacionCharts();
+  buildSummaryTable('absorcion','table-abs-wrap','kpi-abs-cumpl');
+  buildSummaryTable('amortizacion','table-amor-wrap','kpi-amor-cumpl');
+  buildPeriodTables('absorcion','period-tables-abs');
+  buildPeriodTables('amortizacion','period-tables-amor');
+  buildUnitsTables();
+  buildUnitsAATable();
+  buildImportesAcumuladoTable();
+  buildAmorUnitsAATable();
+  buildAmorComparativa();
+  buildAmorAcumImportes();
+  if(currentTab==='ro') buildROTab();
+  if(currentTab==='variacion') buildVariacionTab();
+  if(currentTab==='vspea') buildVsPeaTab();
+}
+
+let infoBoxView = 'mensual';
+let ibSelectedRows = new Set();
+
+function switchInfoTab(view, btn){
+  infoBoxView = view;
+  document.querySelectorAll('.ib-tab').forEach(b=>{
+    b.classList.remove('active'); b.style.borderBottomColor='transparent'; b.style.color='var(--text-muted)';
+  });
+  if(btn){ btn.classList.add('active'); btn.style.borderBottomColor='var(--real)'; btn.style.color='var(--real)'; }
+  document.querySelectorAll('.ib-pane').forEach(p=>p.style.display='none');
+  const pane = document.getElementById('ib-'+view);
+  if(pane) pane.style.display='block';
+}
+
+function buildInfoBox(){
+  const activeMes = activeMonths('absorcion');
+  if(!activeMes.length) return;
+  const filterPlants = (currentPlant==='ALL') ? PLANTAS : [currentPlant];
+
+  function sumFor(months, plant){
+    const ps = plant ? [plant] : filterPlants;
+    let pea=0,std=0,upea=0,ureal=0,peaAll=0;
+    months.forEach(m=>{
+      const d=D.absorcion[m]; if(!d) return;
+      ps.forEach(p=>{pea+=d.pea[p]||0; std+=d.std[p]||0; upea+=d.units_pea[p]||0; ureal+=d.units_real[p]||0;});
+      PLANTAS.forEach(p=>peaAll+=d.pea[p]||0);
+    });
+    const vol=std-pea, varPct=peaAll?vol/peaAll:0;
+    return {pea,std,vol,varPct,upea,ureal,uPct:calcUndsPct(upea,ureal)};
+  }
+
+  const thead = `<thead><tr>
+    <th style="min-width:80px;">Período</th>
+    <th>ABS PEA</th><th>ABS Real</th><th>Var. Volumen</th><th>Var% Abs</th>
+    <th>Unds PEA</th><th>Unds Real</th><th>Var% Und</th>
+  </tr></thead>`;
+
+  function vCells(v){
+    return `<td>${fmt(v.pea)}</td>
+      <td>${fmt(v.std)}</td>
+      <td class="${vc(v.vol)}">${fmt(v.vol)}</td>
+      <td class="${vc(v.varPct)}">${pctStr(v.varPct)}</td>
+      <td>${fmtN(v.upea)}</td>
+      <td>${fmtN(v.ureal)}</td>
+      <td class="${vc(v.uPct)}">${pctStr(v.uPct)}</td>`;
+  }
+
+  function periodRows(uid, label, months){
+    const v = sumFor(months, null);
+    if(v.pea===0 && v.std===0) return '';
+    const sel = ibSelectedRows.has(uid);
+    const hasMultiPlants = filterPlants.length > 1;
+    let html = `<tr class="${sel?'ib-selected':''}" id="ibr_${uid}">
+      <td style="display:flex;align-items:center;gap:5px;">
+        ${hasMultiPlants ? `<button class="var-expand-btn" id="ibexp_${uid}" onclick="ibExpand('${uid}',event)">+</button>` : ''}
+        <span onclick="ibToggleRow('${uid}',['${months.join("','")}'])" style="cursor:pointer;flex:1;">${label}</span>
+      </td>${vCells(v)}</tr>`;
+    if(hasMultiPlants){
+      filterPlants.forEach(p=>{
+        const vp = sumFor(months, p);
+        if(vp.pea===0 && vp.std===0) return;
+        html += `<tr class="ib-ct-row" id="ibct_${uid}_${p}" style="display:none;">
+          <td style="padding-left:px;font-weight:400;font-style:italic;color:#555;font-size:0.68rem;">${p}</td>
+          ${vCells(vp)}
+        </tr>`;
+      });
+    }
+    return html;
+  }
+
+  function footRow(months){
+    const v = sumFor(months, null);
+    return `<tfoot><tr><td>TOTAL YTD</td>${vCells(v)}</tr></tfoot>`;
+  }
+
+  let mesRows='';
+  activeMes.forEach(m=>{ mesRows += periodRows('M_'+m, MESES_SHORT[MESES.indexOf(m)], [m]); });
+  document.getElementById('ib-mensual').innerHTML =
+    `<table class="ib-table">${thead}<tbody>${mesRows}</tbody>${footRow(activeMes)}</table>`;
+
+  const QUARTERS = {Q1:[0,1,2],Q2:[3,4,5],Q3:[6,7,8],Q4:[9,10,11]};
+  let qRows='';
+  Object.entries(QUARTERS).forEach(([qName,idxs])=>{
+    const qMes = idxs.map(i=>MESES[i]).filter(m=>activeMes.includes(m));
+    if(!qMes.length) return;
+    qRows += periodRows('Q_'+qName, qName+'('+qMes.map(m=>MESES_SHORT[MESES.indexOf(m)]).join('\u2013')+')', qMes);
+  });
+  document.getElementById('ib-trimestral').innerHTML =
+    `<table class="ib-table">${thead}<tbody>${qRows}</tbody>${footRow(activeMes)}</table>`;
+
+  const SEMS = {S1:[0,1,2,3,4,5],S2:[6,7,8,9,10,11]};
+  let sRows='';
+  Object.entries(SEMS).forEach(([sName,idxs])=>{
+    const sMes = idxs.map(i=>MESES[i]).filter(m=>activeMes.includes(m));
+    if(!sMes.length) return;
+    sRows += periodRows('S_'+sName, sName+'('+sMes.map(m=>MESES_SHORT[MESES.indexOf(m)]).join('\u2013')+')', sMes);
+  });
+  document.getElementById('ib-semestral').innerHTML =
+    `<table class="ib-table">${thead}<tbody>${sRows}</tbody>${footRow(activeMes)}</table>`;
+}
+
+function ibExpand(uid, event){
+  event.stopPropagation();
+  const btn = document.getElementById('ibexp_'+uid);
+  const isOpen = btn && btn.classList.contains('open');
+  if(btn){ btn.classList.toggle('open',!isOpen); btn.textContent=isOpen?'+':'\u2212'; }
+  document.querySelectorAll('[id^="ibct_'+uid+'_"]').forEach(tr=>{ tr.style.display = isOpen ? 'none' : 'table-row'; });
+}
+
+function ibToggleRow(uid, months){
+  const tr = document.getElementById('ibr_'+uid);
+  if(ibSelectedRows.has(uid)){
+    ibSelectedRows.delete(uid); months.forEach(m=>selectedMonths.delete(m));
+    if(tr) tr.classList.remove('ib-selected');
+  } else {
+    ibSelectedRows.add(uid); months.forEach(m=>selectedMonths.add(m));
+    if(tr) tr.classList.add('ib-selected');
+  }
+  updateSidebarState(); refreshAll();
+}
+
+function openOverlay(){ document.getElementById('uploadOverlay').classList.add('show'); }
+function closeOverlay(){ document.getElementById('uploadOverlay').classList.remove('show'); }
+function _abNum(v){ const f=parseFloat(v); return (isNaN(f)||!isFinite(f))?0:f; }
+function _abNorm(s){ return (s==null?'':String(s)).normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toUpperCase(); }
+function parseAnalisisAbs(rows){
+  const MES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const PL=['ACO','BLI','INY','LIQ','SOLI','CAL'], UP=['ACO','BLI','INY','LIQ','SOLI'];
+  const PEA=[2,3,4,5,6,7],REAL=[9,10,11,12,13,14],STD=[16,17,18,19,20,21];
+  const UPEA=[73,74,75,76,77],UREAL=[80,81,82,83,84],UAA=[108,109,110,111,112];
+  const TITLES={'ABSORCION REAL':'absorcion','AMORTIZACION ABS':'amortizacion','R&O - ABSORCION REAL':'ro_abs','R&O - AMORTIZACION ABS':'ro_amor'};
+  const cell=(r,i)=> (r && i<r.length)? r[i] : null;
+  const blk=(r,idx)=>{ const o={}; let t=0; for(let k=0;k<idx.length;k++){ const v=_abNum(cell(r,idx[k])); o[PL[k]]=v; t+=v; } o.TOTAL=t; return o; };
+  const ublk=(r,idx)=>{ const o={}; let t=0; for(let k=0;k<UP.length;k++){ const v=_abNum(cell(r,idx[k])); o[UP[k]]=v; t+=v; } o.CAL=0; o.TOTAL=t; return o; };
+  const zero=()=>({ACO:0,BLI:0,INY:0,LIQ:0,SOLI:0,CAL:0,TOTAL:0});
+  const secRow={};
+  for(let ri=0;ri<rows.length;ri++){ const b=_abNorm(cell(rows[ri],1)); if(TITLES[b]!==undefined && secRow[TITLES[b]]===undefined) secRow[TITLES[b]]=ri; }
+  const newD={absorcion:{},amortizacion:{},ro_abs:{},ro_amor:{},variacion:{},variacion_mensual:{}};
+  const UAA_O={}, UREAL_O={}; const MESSET=new Set(MES);
+  Object.keys(secRow).forEach(sec=>{
+    const tr=secRow[sec];
+    for(let ri=tr; ri<Math.min(tr+20,rows.length); ri++){
+      const b=cell(rows[ri],1); const bm=(b==null?'':String(b).trim());
+      if(!MESSET.has(bm)) continue;
+      const r=rows[ri];
+      if(sec==='absorcion'||sec==='amortizacion'){
+        newD[sec][bm]={pea:blk(r,PEA),real:blk(r,REAL),std:blk(r,STD),var_otros:zero(),
+          AF:_abNum(cell(r,31)),AG:_abNum(cell(r,32)),AH:_abNum(cell(r,33)),AE:_abNum(cell(r,30)),
+          units_pea:ublk(r,UPEA),units_real:ublk(r,UREAL)};
+        if(sec==='absorcion'){
+          const aa={},ur={};
+          for(let k=0;k<UP.length;k++){ aa[UP[k]]=_abNum(cell(r,UAA[k])); ur[UP[k]]=_abNum(cell(r,UREAL[k])); }
+          UAA_O[bm]=aa; UREAL_O[bm]=ur;
+        }
+      } else {
+        newD[sec][bm]={pea:blk(r,PEA),real:blk(r,REAL)};
+      }
+    }
+  });
+  const mreal=MES.filter(m=> newD.absorcion[m] && (newD.absorcion[m].real.TOTAL>0||newD.absorcion[m].std.TOTAL>0));
+  return {D:newD, UNITS_AA_2025:UAA_O, UNITS_REAL_2026:UREAL_O, MESES_REAL:mreal};
+}
+function handleFile(event){
+  const files=event.target.files; if(!files||!files.length){ closeOverlay(); return; }
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
+      let sheet=null;
+      for(const n of wb.SheetNames){ if(_abNorm(n).indexOf('ANALISIS')>=0){ sheet=wb.Sheets[n]; break; } }
+      if(!sheet) sheet=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(sheet,{header:1,raw:true,defval:null});
+      const res=parseAnalisisAbs(rows);
+      if(!Object.keys(res.D.absorcion).length) throw new Error('No se encontro la hoja "Analisis Abs" con el formato esperado.');
+      D=res.D; UNITS_AA_2025=res.UNITS_AA_2025; UNITS_REAL_2026=res.UNITS_REAL_2026; MESES_REAL=res.MESES_REAL;
+      selectedMonths.clear(); currentPlant='ALL'; currentPeriod='mensual'; activeQuickPeriod='ALL';
+      document.querySelectorAll('.plant-btn').forEach(b=>b.classList.toggle('active', b.textContent.trim()==='Todas'));
+      document.querySelectorAll('.period-btn').forEach(b=>{});
+      buildSidebar(); refreshAll();
+      closeOverlay();
+      alert('Datos actualizados desde el Excel correctamente ('+res.MESES_REAL.length+' meses con datos reales).');
+    }catch(err){ console.error(err); alert('Error al leer el Excel: '+(err&&err.message?err.message:err)); }
+  };
+  reader.onerror=function(){ alert('No se pudo leer el archivo.'); };
+  reader.readAsArrayBuffer(event.target.files[0]);
+}
+
+document.addEventListener('DOMContentLoaded',()=>{
+  buildSidebar();
+  refreshAll();
+  switchInfoTab('mensual', document.getElementById('ibt-mensual'));
+});
+</script>
+
+
+<script>
+</script>
+
+
+
+<script>
+const VS_AA_AMOR_DATA = [
+  {ct: 'ACO', unds_pct: 0.026, unds: 418891, vs_aa: 16564947},
+  {ct: 'BLI', unds_pct: -0.110, unds: -3111088, vs_aa: 25169003},
+  {ct: 'INY', unds_pct: -0.091, unds: -187952, vs_aa: 1879079},
+  {ct: 'LIQ', unds_pct: -0.365, unds: -105672, vs_aa: 184154},
+  {ct: 'SOLI', unds_pct: -0.066, unds: -15750196, vs_aa: 224147103},
+  {ct: 'CAL', unds_pct: 0.0, unds: 0, vs_aa: 0},
+  {ct: 'Total', unds_pct: 0.065, unds: -18736017, vs_aa: 267944286}
+];
+
+function buildVsAATable() {
+  let html = `<h3>COMPARATIVA DE AA VS 2026</h3>
+    <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+      <thead>
+        <tr style="background: #606060; color: white;">
+          <th style="padding: 10px; text-align: left;">CT</th>
+          <th style="padding: 10px; text-align: right;">UNDS VS AA %</th>
+          <th style="padding: 10px; text-align: right;">UNDS vs AA</th>
+          <th style="padding: 10px; text-align: right;">vs AA</th>
+        </tr>
+      </thead>
+      <tbody>`;
+  
+  VS_AA_AMOR_DATA.forEach((row) => {
+    const isTotal = row.ct === 'Total';
+    const rowStyle = isTotal ? 'background: #d3d3d3; font-weight: bold;' : '';
+    const undsPctColor = row.unds_pct > 0 ? '#2d5016' : (row.unds_pct < 0 ? '#c62828' : '#666');
+    
+    html += `<tr style="${rowStyle}">
+      <td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold;">${row.ct}</td>
+      <td style="padding: 8px; border-bottom: 1px solid #ddd; text-align: right; color: ${undsPctColor};">${row.unds_pct !== 0 ? (row.unds_pct * 100).toFixed(1) + '%' : '—'}</td>
+      <td style="padding: 8px; border-bottom: 1px solid #ddd; text-align: right;">${row.unds !== 0 ? row.unds.toLocaleString() : '—'}</td>
+      <td style="padding: 8px; border-bottom: 1px solid #ddd; text-align: right;">${row.vs_aa.toLocaleString()}</td>
+    </tr>`;
+  });
+  
+  html += `</tbody></table>`;
+  return html;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  const vsAASection = document.getElementById('vs-aa-amor-section');
+  if(vsAASection) {
+    vsAASection.innerHTML = buildVsAATable();
+  }
+});
+</script>
