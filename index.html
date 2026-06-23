@@ -208,6 +208,13 @@ thead th { color: #ffffff !important; }
 @media (max-width: 900px) { #quickPeriodButtons { display: none; } }
 ::-webkit-scrollbar { width: 3px; height: 3px; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* ── EFICIENCIA TAB ── */
+.eff-kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: .75rem; margin-bottom: 1.25rem; }
+.eff-kpi { background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 1rem 1.25rem; text-align: center; }
+.eff-kpi-label { font-size: .62rem; text-transform: uppercase; letter-spacing: .08em; color: var(--text-muted); font-weight: 700; margin-bottom: .3rem; }
+.eff-kpi-value { font-size: 1.8rem; font-weight: 700; line-height: 1; }
+.eff-kpi-sub { font-size: .68rem; color: var(--text-muted); margin-top: .25rem; }
 </style>
 
 <!--[if gte mso 9]><xml>
@@ -223,20 +230,23 @@ thead th { color: #ffffff !important; }
 <!-- UPLOAD MODAL -->
 <div class="upload-overlay" id="uploadOverlay">
   <div class="upload-modal">
-    <h2>Actualizar datos</h2>
-    <p>Carga un <strong>.xlsx</strong> (Analisis Abs) <strong>o un .csv</strong> de tu tabla dinamica.<br>Los datos se acumulan mes a mes automaticamente.</p>
-    <div style="background:#f0f7ff;border:1px solid #b3d4f5;border-radius:4px;padding:.6rem .9rem;margin-bottom:.8rem;text-align:left;">
-      <div style="font-size:.7rem;font-weight:700;color:#1a5276;margin-bottom:.3rem;">📋 FORMATO XLSX:</div>
-      <div class="xlsx-format">Absorcion</div>
+    <h2>Agregar mes</h2>
+    <p>Cada Excel que cargues <strong>agrega o actualiza</strong> sus meses sin borrar los anteriores.<br>Podés cargar un mes por vez o varios a la vez.</p>
+    <div id="loaded-months-section" style="background:#f0fff4;border:1px solid #a8e6bf;border-radius:4px;padding:.55rem .9rem;margin-bottom:.8rem;text-align:left;display:none;">
+      <div style="font-size:.68rem;font-weight:700;color:#276749;margin-bottom:.2rem;">📅 Meses ya cargados:</div>
+      <div id="loaded-months-badge" style="font-size:.72rem;color:#276749;font-weight:600;display:none;"></div>
     </div>
     <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
         <path d="M12 16v-8m0 0l-3 3m3-3l3 3"/><path d="M20 16.7A5 5 0 0018 7h-1.3A7 7 0 103 15.3"/>
       </svg>
       <p>Clic o arrastrar — .xlsx / .csv</p>
-      <p style="font-size:0.7rem;margin-top:4px;color:#aaa">Multiples archivos = datos acumulados</p>
+      <p style="font-size:0.7rem;margin-top:4px;color:#aaa">Los nuevos meses se suman a los existentes</p>
     </div>
-    <button class="btn-cancel" onclick="closeOverlay()">Cancelar</button>
+    <div style="display:flex;gap:.5rem;justify-content:center;margin-top:.9rem;align-items:center;">
+      <button class="btn-cancel" onclick="closeOverlay()" style="margin:0;">Cancelar</button>
+      <button onclick="if(confirm('¿Limpiar todos los datos cargados?')){clearAllData();closeOverlay();}" style="font-size:.78rem;color:#c0392b;background:none;border:1px solid #c0392b;border-radius:4px;padding:5px 12px;cursor:pointer;font-family:inherit;">🗑 Limpiar todo</button>
+    </div>
     <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" multiple onchange="handleFile(event)">
   </div>
 </div>
@@ -287,6 +297,7 @@ thead th { color: #ffffff !important; }
   <div class="tab" onclick="switchTab('ro')">R&O Full Year</div>
   <div class="tab" onclick="switchTab('variacion')">Variacion</div>
   <div class="tab" onclick="switchTab('vspea')">VS PEA </div>
+  <div class="tab" onclick="switchTab('eficiencia')">Eficiencia</div>
 </div>
 
 <!-- LAYOUT -->
@@ -336,7 +347,8 @@ thead th { color: #ffffff !important; }
         <div class="table-card" style="overflow-x:auto;">
           <table id="table-acum-importes"></table>
         </div>
-        
+
+       <!-- ACUMULADO DE IMPORTES TABLE -->
       <div class="table-card" style="overflow-x:auto;margin:0.9rem 0 1.5rem;box-sizing:border-box;width:fit-content;max-width:100%;transform:scale(1.4);transform-origin:top left;">
         <div id="ib-mensual"   class="ib-pane"              style="display:block;"></div>
         <div id="ib-trimestral" class="ib-pane"             style="display:none;"></div>
@@ -487,14 +499,35 @@ thead th { color: #ffffff !important; }
 
     <!-- TAB: EFICIENCIA -->
     <section class="tab-content" id="tab-eficiencia">
-      <div class="eff-placeholder">
-        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.5">
-          <path d="M9 17H5a2 2 0 01-2-2V5a2 2 0 012-2h4m6 14h4a2 2 0 002-2V5a2 2 0 00-2-2h-4m-6 14v-4m0-4V7m6 10v-2m0-4V7"/>
-        </svg>
-        <h3>Cuadro de Eficiencia</h3>
-        <p>Este cuadro se completa con la plantilla de <strong>Variacion Volumen vs Costo NF</strong>. Carga el archivo correspondiente para actualizar los datos.</p>
-        <button class="btn-upload" style="margin-top:1rem;background:var(--real);border:none;padding:8px 18px;border-radius:4px;color:#fff;cursor:pointer;font-size:0.8rem;font-weight:600;" onclick="openOverlay()">Cargar plantilla</button>
+      <!-- KPIs -->
+      <div class="eff-kpi-row" id="eff-kpis"></div>
+
+      <!-- Graficas -->
+      <div class="chart-row" style="margin-bottom:1rem;">
+        <div class="chart-card">
+          <div class="chart-card-title">Eficiencia de Costo por Centro de Trabajo</div>
+          <div class="chart-legend">
+            <div class="legend-item"><div class="legend-line real"></div> Var. Costo (Real − STD)</div>
+          </div>
+          <div class="chart-wrap" style="height:220px"><canvas id="chart-eff-costo"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-card-title">Var. Volumen vs Var. Costo por CT</div>
+          <div class="chart-legend">
+            <div class="legend-item"><span style="display:inline-block;width:12px;height:12px;background:rgba(192,57,43,0.75);border-radius:2px;margin-right:4px;"></span>Var. Costo</div>
+            <div class="legend-item"><span style="display:inline-block;width:12px;height:12px;background:rgba(52,152,219,0.75);border-radius:2px;margin-right:4px;"></span>Var. Volumen</div>
+          </div>
+          <div class="chart-wrap" style="height:220px"><canvas id="chart-eff-bridge"></canvas></div>
+        </div>
       </div>
+
+      <!-- Tabla principal por CT -->
+      <div class="section-title">Eficiencia por Centro de Trabajo — Periodo seleccionado</div>
+      <div class="table-card" id="eff-table-wrap" style="margin-bottom:1rem;overflow-x:auto;"></div>
+
+      <!-- Tabla acumulada mes a mes -->
+      <div class="section-title" id="eff-acum-title" style="margin-top:1.25rem;">Evolucion Mensual de Eficiencia</div>
+      <div class="table-card" id="eff-acum-wrap" style="overflow-x:auto;"></div>
     </section>
     </main>
     </div>
@@ -525,6 +558,33 @@ let currentPeriod = 'mensual';
 let currentPlant = 'ALL';
 let selectedMonths = new Set();
 let vspea_selectedPlant = 'ALL';
+
+// ── Datos de Eficiencia NF (Variación Volumen vs Costo) ──
+let EFF_NF_DATA = {
+  byCT: {
+    "ACO":  {"absPea":11098719818.68,"varCost":-710498051.54,"varVol":-2089046326.14,"varOtros":19852850,"absReal":8319028291,"undsPea":16146056,"undsReal":16564947,"varPctUnds":0.025944,"varPctAbs":-0.051376},
+    "BLI":  {"absPea":9146102735.84,"varCost":-58067994.45,"varVol":-2563007503.26,"varOtros":147701625,"absReal":6672728863,"undsPea":28280091,"undsReal":25169003,"varPctUnds":-0.110010,"varPctAbs":-0.045714},
+    "INY":  {"absPea":7894376612.45,"varCost":728743995.30,"varVol":-1335545846.75,"varOtros":84917304,"absReal":7372492065,"undsPea":2067031,"undsReal":1879079,"varPctUnds":-0.090928,"varPctAbs":-0.009646},
+    "SOLI": {"absPea":12378161433.63,"varCost":-701903515.55,"varVol":-2760309286.09,"varOtros":107747320,"absReal":9023695952,"undsPea":239897299,"undsReal":223392947,"varPctUnds":-0.068798,"varPctAbs":-0.061999},
+    "CAL":  {"absPea":12845510358.85,"varCost":1226725400.25,"varVol":-3441558101.94,"varOtros":88126844,"absReal":10718804501,"undsPea":286419745,"undsReal":267034708,"varPctUnds":-0.067681,"varPctAbs":-0.039307},
+    "LIQ":  {"absPea":742258620.97,"varCost":9815057.29,"varVol":-249298427.26,"varOtros":11860237,"absReal":514635488,"undsPea":289826,"undsReal":184154,"varPctUnds":-0.364604,"varPctAbs":-0.004207},
+    "Total general": {"absPea":54105129580.42,"varCost":494814891.31,"varVol":-12438765491.44,"varOtros":460206180,"absReal":42621385160,"undsPea":573100048,"undsReal":534224838,"varPctUnds":-0.067833,"varPctAbs":-0.212249}
+  },
+  monthlyUnits: {
+    "Enero":      {"ACO":2082564,"BLI":1299639,"INY":302553,"LIQ":0,"SOLI":24823300,"CAL":28508056},
+    "Febrero":    {"ACO":3212086,"BLI":6577338,"INY":459048,"LIQ":75159,"SOLI":52335666,"CAL":62598772},
+    "Marzo":      {"ACO":3604450,"BLI":5604657,"INY":561119,"LIQ":105847,"SOLI":57910000,"CAL":67694860},
+    "Abril":      {"ACO":3578066,"BLI":8495450,"INY":458911,"LIQ":58683,"SOLI":54834000,"CAL":67366427},
+    "Mayo":       {"ACO":3668890,"BLI":6303007,"INY":285400,"LIQ":50136,"SOLI":49994333,"CAL":60251630},
+    "Junio":      {"ACO":4284546,"BLI":4768413,"INY":335917,"LIQ":10718,"SOLI":50176333,"CAL":59565209},
+    "Julio":      {"ACO":4028202,"BLI":4590684,"INY":174716,"LIQ":54214,"SOLI":49188000,"CAL":57981602},
+    "Agosto":     {"ACO":3565614,"BLI":6946365,"INY":477329,"LIQ":44865,"SOLI":52291000,"CAL":63280308},
+    "Septiembre": {"ACO":3778173,"BLI":6355876,"INY":437437,"LIQ":94352,"SOLI":53598500,"CAL":64169986},
+    "Octubre":    {"ACO":3435760,"BLI":6156534,"INY":383339,"LIQ":47630,"SOLI":45920500,"CAL":55896133},
+    "Noviembre":  {"ACO":2779000,"BLI":5278719,"INY":89528,"LIQ":44936,"SOLI":36146000,"CAL":44293247},
+    "Diciembre":  {"ACO":1943744,"BLI":3369161,"INY":308161,"LIQ":39179,"SOLI":15205000,"CAL":20826066}
+  }
+};
 
 function s(v){ try{const f=parseFloat(v);return isNaN(f)||!isFinite(f)?0:f;}catch(e){return 0;} }
 function fmt(v){ if(v===null||v===undefined||isNaN(v)) return '—'; return new Intl.NumberFormat('es-AR',{maximumFractionDigits:0}).format(Math.round(v)); }
@@ -1431,6 +1491,279 @@ function switchTab(name){
   if(name==='ro') buildROTab();
   if(name==='variacion') buildVariacionTab();
   if(name==='vspea') buildVsPeaTab();
+  if(name==='eficiencia') buildEficienciaTab();
+}
+
+// ════════════════════════════════════════════════
+// TAB: EFICIENCIA
+// Var. Costo = Real − STD  (ineficiencia de precio/costo unitario)
+// Var. Volumen = STD − PEA (ineficiencia de cantidad producida)
+// Eficiencia % = STD / Real × 100 (cuanto del costo real esta justificado por std)
+// ════════════════════════════════════════════════
+function computeEff(months, plant){
+  const plants = (plant === 'ALL' || !plant) ? PLANTAS : [plant];
+  let pea=0, real=0, std=0, upea=0, ureal=0, peaTot=0;
+  months.forEach(m=>{
+    const d = D.absorcion[m]; if(!d) return;
+    plants.forEach(p=>{
+      pea  += d.pea[p]  || 0;
+      real += d.real[p] || 0;
+      std  += d.std[p]  || 0;
+      upea += d.units_pea[p]  || 0;
+      ureal+= d.units_real[p] || 0;
+    });
+    PLANTAS.forEach(p2=>{ peaTot += d.pea[p2]||0; });
+  });
+  const varCosto  = real - std;           // diferencia costo real vs estandar
+  const varVol    = std  - pea;           // diferencia std vs presupuesto
+  const effPct    = real ? std / real : 0; // eficiencia %
+  const vcPct     = peaTot ? varCosto / peaTot : 0;
+  const vvPct     = peaTot ? varVol   / peaTot : 0;
+  return { pea, real, std, upea, ureal, varCosto, varVol, effPct, vcPct, vvPct, peaTot };
+}
+
+function buildEficienciaTab(){
+  destroyChart('chart-eff-costo');
+  destroyChart('chart-eff-bridge');
+
+  const activeMes = activeMonths('absorcion');
+  const selMes = selectedMonths.size > 0
+    ? [...selectedMonths].filter(m=>activeMes.includes(m)).sort((a,b)=>MESES.indexOf(a)-MESES.indexOf(b))
+    : activeMes;
+
+  if(!selMes.length){
+    document.getElementById('eff-kpis').innerHTML = '';
+    document.getElementById('eff-table-wrap').innerHTML = '<div class="eff-placeholder"><p>No hay datos disponibles.</p></div>';
+    document.getElementById('eff-acum-wrap').innerHTML = '';
+    return;
+  }
+
+  const plants = getPlantsToShow();
+  const totEff  = computeEff(selMes, 'ALL');
+
+  // ── Usar datos NF cuando están disponibles ──
+  const nf = EFF_NF_DATA;
+  const nfTot = nf && nf.byCT["Total general"];
+  const kpiVC   = nfTot ? nfTot.varCost : totEff.varCosto;
+  const kpiVV   = nfTot ? nfTot.varVol  : totEff.varVol;
+  const kpiEff  = nfTot ? (nfTot.absReal - nfTot.varCost) / nfTot.absReal : totEff.effPct;
+  const kpiUpea = nfTot ? nfTot.undsPea  : totEff.upea;
+  const kpiUreal= nfTot ? nfTot.undsReal : totEff.ureal;
+  const kpiVcPct= nfTot ? nfTot.varPctAbs : totEff.vcPct;
+  const kpiVvPct= nfTot ? (nfTot.varVol / nfTot.absPea) : totEff.vvPct;
+  const nfBadge = nf ? '<span style="font-size:0.6rem;background:#27ae60;color:#fff;padding:2px 6px;border-radius:8px;margin-left:8px;vertical-align:middle;">NF ✓</span>' : '';
+
+  // ── KPIs ──
+  const effColor   = kpiEff >= 1 ? 'var(--positive)' : 'var(--negative)';
+  const vcColor    = kpiVC <= 0 ? 'var(--positive)' : 'var(--negative)';
+  const vvColor    = kpiVV >= 0 ? 'var(--positive)' : 'var(--negative)';
+  document.getElementById('eff-kpis').innerHTML = `
+    <div class="eff-kpi">
+      <div class="eff-kpi-label">Eficiencia de Costo${nfBadge}</div>
+      <div class="eff-kpi-value" style="color:${effColor}">${(kpiEff*100).toFixed(1)}%</div>
+      <div class="eff-kpi-sub">STD / Real</div>
+    </div>
+    <div class="eff-kpi">
+      <div class="eff-kpi-label">Var. Costo${nfBadge}</div>
+      <div class="eff-kpi-value" style="color:${vcColor};font-size:1.3rem;">${fmt(kpiVC)}</div>
+      <div class="eff-kpi-sub">${pctStr(kpiVcPct)} sobre PEA</div>
+    </div>
+    <div class="eff-kpi">
+      <div class="eff-kpi-label">Var. Volumen${nfBadge}</div>
+      <div class="eff-kpi-value" style="color:${vvColor};font-size:1.3rem;">${fmt(kpiVV)}</div>
+      <div class="eff-kpi-sub">${pctStr(kpiVvPct)} sobre PEA</div>
+    </div>
+    <div class="eff-kpi">
+      <div class="eff-kpi-label">Unidades Reales${nfBadge}</div>
+      <div class="eff-kpi-value" style="color:var(--text);font-size:1.3rem;">${fmtUnits(kpiUreal)}</div>
+      <div class="eff-kpi-sub">vs PEA ${fmtUnits(kpiUpea)}</div>
+    </div>`;
+
+  // ── Helper: obtener datos por CT (NF si disponible, sino computeEff) ──
+  function getCtEff(p){
+    const nfp = nf && nf.byCT[p];
+    if(nfp){
+      const std = nfp.absReal - nfp.varCost;
+      return { pea:nfp.absPea, real:nfp.absReal, std,
+               varCosto:nfp.varCost, varVol:nfp.varVol,
+               effPct: std/nfp.absReal,
+               vcPct: nfp.varPctAbs,
+               vvPct: nfp.varVol/nfp.absPea,
+               upea:nfp.undsPea, ureal:nfp.undsReal,
+               peaTot: nfTot ? nfTot.absPea : nfp.absPea,
+               isNF: true };
+    }
+    return { ...computeEff(selMes, p), isNF: false };
+  }
+
+  // ── Grafica 1: Var. Costo por CT ──
+  const ctNFData = plants.map(p => getCtEff(p));
+  const vcData   = ctNFData.map(e => e.varCosto);
+  const vcColors = vcData.map(v => v <= 0 ? 'rgba(39,174,96,0.75)' : 'rgba(192,57,43,0.75)');
+  if(document.getElementById('chart-eff-costo')){
+    charts['chart-eff-costo'] = new Chart(
+      document.getElementById('chart-eff-costo').getContext('2d'),{
+        type:'bar',
+        data:{ labels: plants,
+               datasets:[{ label:'Var. Costo', data: vcData,
+                           backgroundColor: vcColors, borderRadius:3, borderWidth:0 }]},
+        options:{ ...lineOpts(),
+          plugins:{ ...lineOpts().plugins,
+            tooltip:{ ...lineOpts().plugins.tooltip,
+              callbacks:{ label: c => ` ${c.dataset.label}: ${fmt(c.parsed.y)}` }}}}
+      });
+  }
+
+  // ── Grafica 2: Var. Costo vs Var. Volumen agrupado por CT ──
+  if(document.getElementById('chart-eff-bridge')){
+    charts['chart-eff-bridge'] = new Chart(
+      document.getElementById('chart-eff-bridge').getContext('2d'),{
+        type:'bar',
+        data:{ labels: plants,
+               datasets:[
+                 { label:'Var. Costo',   data: ctNFData.map(e=>e.varCosto),
+                   backgroundColor:'rgba(192,57,43,0.75)', borderRadius:3, borderWidth:0 },
+                 { label:'Var. Volumen', data: ctNFData.map(e=>e.varVol),
+                   backgroundColor:'rgba(52,152,219,0.75)', borderRadius:3, borderWidth:0 }
+               ]},
+        options:{ ...lineOpts(),
+          plugins:{ ...lineOpts().plugins,
+            tooltip:{ ...lineOpts().plugins.tooltip,
+              callbacks:{ label: c => ` ${c.dataset.label}: ${fmt(c.parsed.y)}` }}}}
+      });
+  }
+
+  // ── Tabla principal por CT ──
+  let bodyRows = '';
+  plants.forEach(p=>{
+    const e = getCtEff(p);
+    const effPctColor = e.effPct >= 1 ? 'var(--positive)' : 'var(--negative)';
+    const uid = 'eff_' + p;
+    // Filas mensuales siempre desde D.absorcion
+    let monthRows = '';
+    selMes.forEach(m=>{
+      const em = computeEff([m], p);
+      if(em.pea===0 && em.real===0) return;
+      const ec = em.effPct >= 1 ? 'var(--positive)' : 'var(--negative)';
+      monthRows += `<tr class="var-month-row" id="effmr_${uid}_${m}">
+        <td style="padding-left:28px;font-style:italic;color:#666;font-size:0.69rem;">${MESES_SHORT[MESES.indexOf(m)]}</td>
+        <td>${fmt(em.pea)}</td>
+        <td>${fmt(em.real)}</td>
+        <td>${fmt(em.std)}</td>
+        <td class="${vc(em.varCosto)}">${fmt(em.varCosto)}</td>
+        <td class="${vc(em.varVol)}">${fmt(em.varVol)}</td>
+        <td style="color:${ec};font-weight:600;">${(em.effPct*100).toFixed(1)}%</td>
+        <td class="${vc(-em.varCosto)}">${pctStr(em.vcPct)}</td>
+        <td class="${vc(em.varVol)}">${pctStr(em.vvPct)}</td>
+      </tr>`;
+    });
+    const nfMark = e.isNF ? ' <span style="font-size:0.55rem;background:#27ae60;color:#fff;padding:1px 4px;border-radius:4px;">NF</span>' : '';
+    bodyRows += `<tr>
+      <td style="display:flex;align-items:center;gap:5px;">
+        ${monthRows ? `<button class="var-expand-btn" id="effexp_${uid}" onclick="effExpand('${uid}',event)">+</button>` : '<span style="width:24px;display:inline-block;"></span>'}
+        <strong>${p}</strong>${nfMark}
+      </td>
+      <td>${fmt(e.pea)}</td>
+      <td>${fmt(e.real)}</td>
+      <td>${fmt(e.std)}</td>
+      <td class="${vc(e.varCosto)}">${fmt(e.varCosto)}</td>
+      <td class="${vc(e.varVol)}">${fmt(e.varVol)}</td>
+      <td style="color:${e.effPct>=1?'var(--positive)':'var(--negative)'};font-weight:700;">${(e.effPct*100).toFixed(1)}%</td>
+      <td class="${vc(-e.varCosto)}">${pctStr(e.vcPct)}</td>
+      <td class="${vc(e.varVol)}">${pctStr(e.vvPct)}</td>
+    </tr>${monthRows}`;
+  });
+
+  // fila total — NF si disponible
+  const totRow = nfTot
+    ? { pea:nfTot.absPea, real:nfTot.absReal, std:nfTot.absReal-nfTot.varCost,
+        varCosto:nfTot.varCost, varVol:nfTot.varVol,
+        effPct:(nfTot.absReal-nfTot.varCost)/nfTot.absReal,
+        vcPct:nfTot.varPctAbs, vvPct:nfTot.varVol/nfTot.absPea }
+    : computeEff(selMes, 'ALL');
+  document.getElementById('eff-table-wrap').innerHTML = `
+    <table>
+      <thead><tr>
+        <th style="text-align:left;min-width:70px;">CT</th>
+        <th>PEA</th><th>Real</th><th>STD</th>
+        <th>Var. Costo<br><small style="font-weight:400;font-size:0.6rem;">(Real−STD)</small></th>
+        <th>Var. Volumen<br><small style="font-weight:400;font-size:0.6rem;">(STD−PEA)</small></th>
+        <th>Eficiencia %<br><small style="font-weight:400;font-size:0.6rem;">(STD/Real)</small></th>
+        <th>Var Costo %</th>
+        <th>Var Vol %</th>
+      </tr></thead>
+      <tbody>${bodyRows}</tbody>
+      <tfoot><tr>
+        <td>TOTAL${nfTot?'<span style="font-size:0.55rem;background:#27ae60;color:#fff;padding:1px 4px;border-radius:4px;margin-left:4px;">NF</span>':''}</td>
+        <td>${fmt(totRow.pea)}</td>
+        <td>${fmt(totRow.real)}</td>
+        <td>${fmt(totRow.std)}</td>
+        <td class="${vc(totRow.varCosto)}">${fmt(totRow.varCosto)}</td>
+        <td class="${vc(totRow.varVol)}">${fmt(totRow.varVol)}</td>
+        <td style="color:${totRow.effPct>=1?'var(--positive)':'var(--negative)'};font-weight:700;">${(totRow.effPct*100).toFixed(1)}%</td>
+        <td class="${vc(-totRow.varCosto)}">${pctStr(totRow.vcPct)}</td>
+        <td class="${vc(totRow.varVol)}">${pctStr(totRow.vvPct)}</td>
+      </tr></tfoot>
+    </table>`;
+
+  // ── Tabla acumulada mes a mes ──
+  let runPea=0, runReal=0, runStd=0, runUpea=0, runUreal=0, runPeaTot=0;
+  let acumRows = '';
+  selMes.forEach((m, idx)=>{
+    const e = computeEff([m], currentPlant);
+    runPea  += e.pea;  runReal += e.real; runStd  += e.std;
+    runUpea += e.upea; runUreal+= e.ureal; runPeaTot += e.peaTot;
+    const runVarCosto = runReal - runStd;
+    const runVarVol   = runStd  - runPea;
+    const runEffPct   = runReal ? runStd / runReal : 0;
+    const runVcPct    = runPeaTot ? runVarCosto / runPeaTot : 0;
+    const runVvPct    = runPeaTot ? runVarVol   / runPeaTot : 0;
+    const isLast = idx === selMes.length - 1;
+    acumRows += `<tr class="${isLast?'acum-last-row':''}">
+      <td>${MESES_SHORT[MESES.indexOf(m)]}</td>
+      <td>${fmt(e.pea)}</td><td>${fmt(e.real)}</td><td>${fmt(e.std)}</td>
+      <td class="${vc(e.varCosto)}">${fmt(e.varCosto)}</td>
+      <td class="${vc(e.varVol)}">${fmt(e.varVol)}</td>
+      <td style="color:${e.effPct>=1?'var(--positive)':'var(--negative)'};font-weight:600;">${(e.effPct*100).toFixed(1)}%</td>
+      <td style="border-left:2px solid #ccc;">${fmt(runPea)}</td>
+      <td>${fmt(runReal)}</td><td>${fmt(runStd)}</td>
+      <td class="${vc(runVarCosto)}">${fmt(runVarCosto)}</td>
+      <td class="${vc(runVarVol)}">${fmt(runVarVol)}</td>
+      <td style="color:${runEffPct>=1?'var(--positive)':'var(--negative)'};font-weight:700;">${(runEffPct*100).toFixed(1)}%</td>
+      <td class="${vc(-runVarCosto)}">${pctStr(runVcPct)}</td>
+      <td class="${vc(runVarVol)}">${pctStr(runVvPct)}</td>
+    </tr>`;
+  });
+
+  const ctLabel = currentPlant === 'ALL' ? 'Todas las plantas' : currentPlant;
+  document.getElementById('eff-acum-wrap').innerHTML = `
+    <div style="font-size:0.68rem;color:#888;padding:8px 9px 4px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">CT: ${ctLabel}</div>
+    <div style="overflow-x:auto;">
+    <table style="min-width:900px;">
+      <thead>
+        <tr>
+          <th rowspan="2" style="text-align:left;vertical-align:bottom;">Mes</th>
+          <th colspan="7" style="text-align:center;border-bottom:1px solid rgba(255,255,255,0.3);background:#777;">Mensual</th>
+          <th colspan="7" style="text-align:center;border-bottom:1px solid rgba(255,255,255,0.3);border-left:2px solid #ccc;">Acumulado</th>
+        </tr>
+        <tr>
+          <th>PEA</th><th>Real</th><th>STD</th>
+          <th>Var. Costo</th><th>Var. Vol</th><th>Efic%</th>
+          <th style="border-left:2px solid #ccc;">PEA Acum</th><th>Real Acum</th><th>STD Acum</th>
+          <th>Var Costo Acum</th><th>Var Vol Acum</th><th>Efic% Acum</th>
+          <th>%VCosto</th><th>%VVol</th>
+        </tr>
+      </thead>
+      <tbody>${acumRows}</tbody>
+    </table></div>`;
+}
+
+function effExpand(uid, event){
+  event.stopPropagation();
+  const btn = document.getElementById('effexp_'+uid);
+  const isOpen = btn && btn.classList.contains('open');
+  if(btn){ btn.classList.toggle('open',!isOpen); btn.textContent=isOpen?'+':'\u2212'; }
+  document.querySelectorAll('[id^="effmr_'+uid+'_"]').forEach(tr=>tr.classList.toggle('show',!isOpen));
 }
 
 function refreshAll(){
@@ -1574,7 +1907,19 @@ function ibToggleRow(uid, months){
   updateSidebarState(); refreshAll();
 }
 
-function openOverlay(){ document.getElementById('uploadOverlay').classList.add('show'); }
+function openOverlay(){
+  document.getElementById('uploadOverlay').classList.add('show');
+  const loaded = MESES.filter(m => D.absorcion[m] && (D.absorcion[m].pea.TOTAL>0||D.absorcion[m].real.TOTAL>0));
+  const section = document.getElementById('loaded-months-section');
+  const badge   = document.getElementById('loaded-months-badge');
+  if(loaded.length && section && badge){
+    badge.textContent = loaded.map(m=>MESES_SHORT[MESES.indexOf(m)]).join(', ');
+    badge.style.display = 'block';
+    section.style.display = 'block';
+  } else if(section){
+    section.style.display = 'none';
+  }
+}
 function closeOverlay(){ document.getElementById('uploadOverlay').classList.remove('show'); }
 function _abNum(v){ const f=parseFloat(v); return (isNaN(f)||!isFinite(f))?0:f; }
 function _abNorm(s){ return (s==null?'':String(s)).normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toUpperCase(); }
@@ -1615,25 +1960,120 @@ function parseAnalisisAbs(rows){
   const mreal=MES.filter(m=> newD.absorcion[m] && (newD.absorcion[m].real.TOTAL>0||newD.absorcion[m].std.TOTAL>0));
   return {D:newD, UNITS_AA_2025:UAA_O, UNITS_REAL_2026:UREAL_O, MESES_REAL:mreal};
 }
+// ── Parser para "Variación Volumen vs Costo NF" Excel ──
+function parseVarVolCosto(wb){
+  const shAnalisis = wb.Sheets['Analisis'];
+  const shCtl      = wb.Sheets['Ctl'];
+  if(!shAnalisis && !shCtl) return null;
+
+  const newByCT = {};
+  if(shAnalisis){
+    const rows = XLSX.utils.sheet_to_json(shAnalisis,{header:1,raw:true,defval:null});
+    // Filas 9-16: datos por CT en columnas 17-30
+    rows.slice(8,16).forEach(r=>{
+      const ct = r[17];
+      if(!ct || ct===0) return;
+      const absPea   = r[21]||0, varCost = r[22]||0, varVol  = r[23]||0;
+      const varOtros = r[24]||0, absReal = r[25]||0;
+      const undsPea  = r[26]||0, undsReal= r[27]||0;
+      const varPctUnds = r[29]||0, varPctAbs = r[30]||0;
+      newByCT[ct] = {absPea,varCost,varVol,varOtros,absReal,undsPea,undsReal,varPctUnds,varPctAbs};
+    });
+  }
+
+  const newMonthly = {};
+  if(shCtl){
+    const ctlRows = XLSX.utils.sheet_to_json(shCtl,{header:1,raw:true,defval:null});
+    const MN = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    ctlRows.slice(3,15).forEach((r,i)=>{
+      if(!r[0]||r[0]==='(en blanco)'||r[0]==='Total general') return;
+      newMonthly[MN[i]] = {ACO:r[7]||0,BLI:r[8]||0,INY:r[9]||0,LIQ:r[10]||0,SOLI:r[11]||0,CAL:r[12]||0};
+    });
+  }
+
+  if(!Object.keys(newByCT).length && !Object.keys(newMonthly).length) return null;
+  return { byCT: newByCT, monthlyUnits: newMonthly };
+}
+
+function mergeData(res){
+  // Merge sections: absorcion, amortizacion, ro_abs, ro_amor
+  const SECS = ['absorcion','amortizacion','ro_abs','ro_amor'];
+  SECS.forEach(sec=>{
+    Object.keys(res.D[sec]).forEach(mes=>{
+      D[sec][mes] = res.D[sec][mes];
+    });
+  });
+  // Merge unit tables
+  Object.keys(res.UNITS_AA_2025).forEach(mes=>{ UNITS_AA_2025[mes] = res.UNITS_AA_2025[mes]; });
+  Object.keys(res.UNITS_REAL_2026).forEach(mes=>{ UNITS_REAL_2026[mes] = res.UNITS_REAL_2026[mes]; });
+  // Recalculate MESES_REAL as union
+  const allReal = new Set([...MESES_REAL, ...res.MESES_REAL]);
+  MESES_REAL = MESES.filter(m => allReal.has(m));
+}
+
+function clearAllData(){
+  const empty = ()=>({});
+  D = {absorcion:{},amortizacion:{},ro_abs:{},ro_amor:{},variacion:{},variacion_mensual:{}};
+  UNITS_AA_2025 = {}; UNITS_REAL_2026 = {}; MESES_REAL = [];
+  selectedMonths.clear(); currentPlant='ALL'; currentPeriod='mensual'; activeQuickPeriod='ALL';
+  document.querySelectorAll('.plant-btn').forEach(b=>b.classList.toggle('active', b.textContent.trim()==='Todas'));
+  buildSidebar(); refreshAll();
+  updateLoadedMonthsBadge();
+}
+
+function updateLoadedMonthsBadge(){
+  const badge = document.getElementById('loaded-months-badge');
+  if(!badge) return;
+  const loaded = MESES.filter(m => D.absorcion[m] && (D.absorcion[m].pea.TOTAL>0||D.absorcion[m].real.TOTAL>0));
+  if(loaded.length){
+    badge.textContent = loaded.map(m=>MESES_SHORT[MESES.indexOf(m)]).join(', ');
+    badge.style.display = 'block';
+  } else {
+    badge.textContent = '';
+    badge.style.display = 'none';
+  }
+}
+
 function handleFile(event){
   const files=event.target.files; if(!files||!files.length){ closeOverlay(); return; }
   const reader=new FileReader();
   reader.onload=function(e){
     try{
       const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
+
+      // ── Detectar formato "Variación Volumen vs Costo NF" ──
+      const isNFfile = wb.SheetNames.includes('Analisis') && wb.SheetNames.includes('Ctl') &&
+                       !wb.SheetNames.some(n=>_abNorm(n).indexOf('ANALISIS ABS')>=0);
+      if(isNFfile){
+        const nfRes = parseVarVolCosto(wb);
+        if(!nfRes) throw new Error('No se pudo leer el formato NF (Variación Volumen vs Costo).');
+        EFF_NF_DATA = nfRes;
+        closeOverlay();
+        if(currentTab==='eficiencia') buildEficienciaTab();
+        alert('✅ Datos NF cargados correctamente.\nSe actualizaron: KPIs, gráficos y tabla de la tab Eficiencia.');
+        return;
+      }
+
+      // ── Formato estándar "Absorcion Real vs PEA" ──
       let sheet=null;
       for(const n of wb.SheetNames){ if(_abNorm(n).indexOf('ANALISIS')>=0){ sheet=wb.Sheets[n]; break; } }
       if(!sheet) sheet=wb.Sheets[wb.SheetNames[0]];
       const rows=XLSX.utils.sheet_to_json(sheet,{header:1,raw:true,defval:null});
       const res=parseAnalisisAbs(rows);
       if(!Object.keys(res.D.absorcion).length) throw new Error('No se encontro la hoja "Analisis Abs" con el formato esperado.');
-      D=res.D; UNITS_AA_2025=res.UNITS_AA_2025; UNITS_REAL_2026=res.UNITS_REAL_2026; MESES_REAL=res.MESES_REAL;
+      const mesesNuevos = res.MESES_REAL.filter(m=>!MESES_REAL.includes(m));
+      const mesesActualizados = res.MESES_REAL.filter(m=>MESES_REAL.includes(m));
+      mergeData(res);
       selectedMonths.clear(); currentPlant='ALL'; currentPeriod='mensual'; activeQuickPeriod='ALL';
       document.querySelectorAll('.plant-btn').forEach(b=>b.classList.toggle('active', b.textContent.trim()==='Todas'));
-      document.querySelectorAll('.period-btn').forEach(b=>{});
       buildSidebar(); refreshAll();
+      updateLoadedMonthsBadge();
       closeOverlay();
-      alert('Datos actualizados desde el Excel correctamente ('+res.MESES_REAL.length+' meses con datos reales).');
+      let msg = '';
+      if(mesesNuevos.length) msg += '✅ Meses agregados: ' + mesesNuevos.join(', ') + '\n';
+      if(mesesActualizados.length) msg += '🔄 Meses actualizados: ' + mesesActualizados.join(', ') + '\n';
+      msg += '\nTotal en dashboard: ' + MESES_REAL.length + ' meses con datos reales.';
+      alert(msg);
     }catch(err){ console.error(err); alert('Error al leer el Excel: '+(err&&err.message?err.message:err)); }
   };
   reader.onerror=function(){ alert('No se pudo leer el archivo.'); };
